@@ -1,0 +1,537 @@
+import { useState } from "react";
+import { Calendar, Search, Filter, Plus, Edit, Trash2, Eye, Ban, Check, X, Clock } from "lucide-react";
+import { AdminLayout } from "@/components/layout/AdminLayout";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { 
+  Table, 
+  TableBody, 
+  TableCell, 
+  TableHead, 
+  TableHeader, 
+  TableRow 
+} from "@/components/ui/table";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
+import { useToast } from "@/hooks/use-toast";
+import { 
+  fields, 
+  fieldReservations, 
+  timeSlots, 
+  getStatusColor, 
+  getStatusLabel,
+  FieldReservation 
+} from "@/data/mockData";
+import { format, addDays, startOfWeek } from "date-fns";
+import { fr } from "date-fns/locale";
+
+export default function AdminFields() {
+  const { toast } = useToast();
+  const [searchQuery, setSearchQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [fieldFilter, setFieldFilter] = useState<string>("all");
+  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [viewMode, setViewMode] = useState<"list" | "calendar">("list");
+  const [selectedReservation, setSelectedReservation] = useState<FieldReservation | null>(null);
+  const [showBlockDialog, setShowBlockDialog] = useState(false);
+  const [blockData, setBlockData] = useState({ fieldId: "1", date: "", timeSlot: "", reason: "" });
+
+  // Get week dates for calendar view
+  const weekStart = startOfWeek(selectedDate, { weekStartsOn: 1 });
+  const weekDates = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
+
+  // Filter reservations
+  const filteredReservations = fieldReservations.filter(res => {
+    const matchesSearch = 
+      res.customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      res.customerPhone.includes(searchQuery);
+    const matchesStatus = statusFilter === "all" || res.status === statusFilter;
+    const matchesField = fieldFilter === "all" || res.fieldId.toString() === fieldFilter;
+    return matchesSearch && matchesStatus && matchesField;
+  });
+
+  const handleStatusChange = (reservationId: string, newStatus: 'confirmed' | 'canceled') => {
+    toast({
+      title: newStatus === 'confirmed' ? "Réservation confirmée" : "Réservation annulée",
+      description: `La réservation a été ${newStatus === 'confirmed' ? 'confirmée' : 'annulée'} avec succès.`,
+    });
+    setSelectedReservation(null);
+  };
+
+  const handleBlockSlot = () => {
+    toast({
+      title: "Créneau bloqué",
+      description: "Le créneau a été bloqué avec succès.",
+    });
+    setShowBlockDialog(false);
+    setBlockData({ fieldId: "1", date: "", timeSlot: "", reason: "" });
+  };
+
+  const getReservationForSlot = (fieldId: number, date: Date, time: string) => {
+    const dateStr = format(date, 'yyyy-MM-dd');
+    return fieldReservations.find(
+      res => res.fieldId === fieldId && res.date === dateStr && res.timeSlot === time
+    );
+  };
+
+  return (
+    <AdminLayout>
+      <div className="space-y-6">
+        {/* Header */}
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+          <div>
+            <h1 className="text-2xl font-display font-bold">Gestion des Terrains</h1>
+            <p className="text-muted-foreground">Gérez les réservations et la disponibilité des terrains</p>
+          </div>
+          <div className="flex gap-2">
+            <Button
+              variant={viewMode === "list" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setViewMode("list")}
+            >
+              Liste
+            </Button>
+            <Button
+              variant={viewMode === "calendar" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setViewMode("calendar")}
+            >
+              Calendrier
+            </Button>
+            <Button onClick={() => setShowBlockDialog(true)}>
+              <Ban className="w-4 h-4 mr-2" />
+              Bloquer un créneau
+            </Button>
+          </div>
+        </div>
+
+        {/* Stats Cards */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                Réservations aujourd'hui
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">
+                {fieldReservations.filter(r => r.date === format(new Date(), 'yyyy-MM-dd')).length}
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                En attente
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-yellow-600">
+                {fieldReservations.filter(r => r.status === 'pending').length}
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                Confirmées
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-green-600">
+                {fieldReservations.filter(r => r.status === 'confirmed').length}
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium text-muted-foreground">
+                Terrains actifs
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">
+                {fields.filter(f => f.status === 'active').length} / {fields.length}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {viewMode === "list" ? (
+          <>
+            {/* Filters */}
+            <Card>
+              <CardContent className="pt-6">
+                <div className="flex flex-col sm:flex-row gap-4">
+                  <div className="flex-1">
+                    <div className="relative">
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                      <Input
+                        placeholder="Rechercher par nom ou téléphone..."
+                        value={searchQuery}
+                        onChange={(e) => setSearchQuery(e.target.value)}
+                        className="pl-10"
+                      />
+                    </div>
+                  </div>
+                  <Select value={statusFilter} onValueChange={setStatusFilter}>
+                    <SelectTrigger className="w-full sm:w-40">
+                      <SelectValue placeholder="Statut" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Tous les statuts</SelectItem>
+                      <SelectItem value="pending">En attente</SelectItem>
+                      <SelectItem value="confirmed">Confirmé</SelectItem>
+                      <SelectItem value="canceled">Annulé</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <Select value={fieldFilter} onValueChange={setFieldFilter}>
+                    <SelectTrigger className="w-full sm:w-40">
+                      <SelectValue placeholder="Terrain" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Tous les terrains</SelectItem>
+                      {fields.map(field => (
+                        <SelectItem key={field.id} value={field.id.toString()}>
+                          {field.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Reservations Table */}
+            <Card>
+              <CardHeader>
+                <CardTitle>Réservations ({filteredReservations.length})</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Date</TableHead>
+                      <TableHead>Créneau</TableHead>
+                      <TableHead>Terrain</TableHead>
+                      <TableHead>Client</TableHead>
+                      <TableHead>Téléphone</TableHead>
+                      <TableHead>Statut</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredReservations.map((reservation) => (
+                      <TableRow key={reservation.id}>
+                        <TableCell>
+                          {format(new Date(reservation.date), 'dd MMM yyyy', { locale: fr })}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-1">
+                            <Clock className="w-4 h-4 text-muted-foreground" />
+                            {reservation.timeSlot}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          {fields.find(f => f.id === reservation.fieldId)?.name}
+                        </TableCell>
+                        <TableCell className="font-medium">{reservation.customerName}</TableCell>
+                        <TableCell>{reservation.customerPhone}</TableCell>
+                        <TableCell>
+                          <Badge className={getStatusColor(reservation.status)}>
+                            {getStatusLabel(reservation.status)}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-1">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => setSelectedReservation(reservation)}
+                            >
+                              <Eye className="w-4 h-4" />
+                            </Button>
+                            {reservation.status === 'pending' && (
+                              <>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="text-green-600 hover:text-green-700"
+                                  onClick={() => handleStatusChange(reservation.id, 'confirmed')}
+                                >
+                                  <Check className="w-4 h-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="text-destructive hover:text-destructive"
+                                  onClick={() => handleStatusChange(reservation.id, 'canceled')}
+                                >
+                                  <X className="w-4 h-4" />
+                                </Button>
+                              </>
+                            )}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                    {filteredReservations.length === 0 && (
+                      <TableRow>
+                        <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                          Aucune réservation trouvée
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          </>
+        ) : (
+          /* Calendar View */
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle>Vue Calendrier</CardTitle>
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setSelectedDate(addDays(selectedDate, -7))}
+                >
+                  Semaine précédente
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setSelectedDate(new Date())}
+                >
+                  Aujourd'hui
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setSelectedDate(addDays(selectedDate, 7))}
+                >
+                  Semaine suivante
+                </Button>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="overflow-x-auto">
+                <table className="w-full border-collapse">
+                  <thead>
+                    <tr>
+                      <th className="p-2 border border-border bg-muted text-left text-sm font-medium">
+                        Créneau
+                      </th>
+                      {weekDates.map(date => (
+                        <th key={date.toISOString()} className="p-2 border border-border bg-muted text-center text-sm font-medium min-w-[120px]">
+                          <div>{format(date, 'EEE', { locale: fr })}</div>
+                          <div className="text-xs text-muted-foreground">{format(date, 'dd/MM')}</div>
+                        </th>
+                      ))}
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {timeSlots.map(slot => (
+                      <tr key={slot.id}>
+                        <td className="p-2 border border-border bg-muted/50 text-sm font-medium">
+                          {slot.time}
+                        </td>
+                        {weekDates.map(date => {
+                          const res1 = getReservationForSlot(1, date, slot.time);
+                          const res2 = getReservationForSlot(2, date, slot.time);
+                          return (
+                            <td key={date.toISOString()} className="p-1 border border-border">
+                              <div className="space-y-1">
+                                {[1, 2].map(fieldId => {
+                                  const res = fieldId === 1 ? res1 : res2;
+                                  return (
+                                    <div
+                                      key={fieldId}
+                                      className={`p-1 rounded text-xs cursor-pointer transition-colors ${
+                                        res
+                                          ? res.status === 'confirmed'
+                                            ? 'bg-green-100 text-green-800 hover:bg-green-200'
+                                            : res.status === 'pending'
+                                            ? 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200'
+                                            : 'bg-red-100 text-red-800'
+                                          : 'bg-muted/30 hover:bg-muted text-muted-foreground'
+                                      }`}
+                                      onClick={() => res && setSelectedReservation(res)}
+                                    >
+                                      <div className="font-medium">T{fieldId}</div>
+                                      {res && <div className="truncate">{res.customerName}</div>}
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </td>
+                          );
+                        })}
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Reservation Details Dialog */}
+        <Dialog open={!!selectedReservation} onOpenChange={() => setSelectedReservation(null)}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Détails de la réservation</DialogTitle>
+            </DialogHeader>
+            {selectedReservation && (
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label className="text-muted-foreground">Client</Label>
+                    <p className="font-medium">{selectedReservation.customerName}</p>
+                  </div>
+                  <div>
+                    <Label className="text-muted-foreground">Téléphone</Label>
+                    <p className="font-medium">{selectedReservation.customerPhone}</p>
+                  </div>
+                  <div>
+                    <Label className="text-muted-foreground">Date</Label>
+                    <p className="font-medium">
+                      {format(new Date(selectedReservation.date), 'dd MMMM yyyy', { locale: fr })}
+                    </p>
+                  </div>
+                  <div>
+                    <Label className="text-muted-foreground">Créneau</Label>
+                    <p className="font-medium">{selectedReservation.timeSlot}</p>
+                  </div>
+                  <div>
+                    <Label className="text-muted-foreground">Terrain</Label>
+                    <p className="font-medium">
+                      {fields.find(f => f.id === selectedReservation.fieldId)?.name}
+                    </p>
+                  </div>
+                  <div>
+                    <Label className="text-muted-foreground">Statut</Label>
+                    <Badge className={getStatusColor(selectedReservation.status)}>
+                      {getStatusLabel(selectedReservation.status)}
+                    </Badge>
+                  </div>
+                </div>
+                <div>
+                  <Label className="text-muted-foreground">Créé le</Label>
+                  <p className="font-medium">
+                    {format(new Date(selectedReservation.createdAt), 'dd/MM/yyyy HH:mm', { locale: fr })}
+                  </p>
+                </div>
+              </div>
+            )}
+            <DialogFooter>
+              {selectedReservation?.status === 'pending' && (
+                <>
+                  <Button
+                    variant="outline"
+                    onClick={() => handleStatusChange(selectedReservation.id, 'canceled')}
+                  >
+                    <X className="w-4 h-4 mr-2" />
+                    Annuler
+                  </Button>
+                  <Button
+                    onClick={() => handleStatusChange(selectedReservation.id, 'confirmed')}
+                  >
+                    <Check className="w-4 h-4 mr-2" />
+                    Confirmer
+                  </Button>
+                </>
+              )}
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Block Slot Dialog */}
+        <Dialog open={showBlockDialog} onOpenChange={setShowBlockDialog}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Bloquer un créneau</DialogTitle>
+              <DialogDescription>
+                Bloquez un créneau pour maintenance ou usage privé
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <Label>Terrain</Label>
+                <Select value={blockData.fieldId} onValueChange={(v) => setBlockData({...blockData, fieldId: v})}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {fields.map(field => (
+                      <SelectItem key={field.id} value={field.id.toString()}>
+                        {field.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Date</Label>
+                <Input
+                  type="date"
+                  value={blockData.date}
+                  onChange={(e) => setBlockData({...blockData, date: e.target.value})}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Créneau</Label>
+                <Select value={blockData.timeSlot} onValueChange={(v) => setBlockData({...blockData, timeSlot: v})}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Sélectionner un créneau" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {timeSlots.map(slot => (
+                      <SelectItem key={slot.id} value={slot.time}>
+                        {slot.time}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label>Raison (optionnel)</Label>
+                <Input
+                  value={blockData.reason}
+                  onChange={(e) => setBlockData({...blockData, reason: e.target.value})}
+                  placeholder="Ex: Maintenance du terrain"
+                />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowBlockDialog(false)}>
+                Annuler
+              </Button>
+              <Button onClick={handleBlockSlot}>
+                Bloquer
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </div>
+    </AdminLayout>
+  );
+}

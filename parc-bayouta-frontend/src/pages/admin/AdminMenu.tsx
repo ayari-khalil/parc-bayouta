@@ -6,13 +6,13 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
 } from "@/components/ui/table";
 import {
   Dialog,
@@ -44,21 +44,21 @@ export default function AdminMenu() {
   const [activeTab, setActiveTab] = useState("items");
   const [searchQuery, setSearchQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
-  
+
   // Category dialog
   const [showCategoryDialog, setShowCategoryDialog] = useState(false);
   const [editingCategory, setEditingCategory] = useState<MenuCategory | null>(null);
   const [categoryForm, setCategoryForm] = useState({ name: "", icon: "Coffee" });
-  
+
   // Item dialog
   const [showItemDialog, setShowItemDialog] = useState(false);
   const [editingItem, setEditingItem] = useState<MenuItem | null>(null);
-  const [itemForm, setItemForm] = useState({ 
-    name: "", 
-    price: "", 
-    description: "", 
+  const [itemForm, setItemForm] = useState({
+    name: "",
+    price: "",
+    description: "",
     categoryId: "",
-    isActive: true 
+    isActive: true
   });
 
   // Delete confirmation
@@ -189,9 +189,9 @@ export default function AdminMenu() {
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList>
-            <TabsTrigger value="items">Articles</TabsTrigger>
-            <TabsTrigger value="categories">Catégories</TabsTrigger>
+          <TabsList className="w-full flex justify-start overflow-x-auto h-auto p-1 bg-muted/50">
+            <TabsTrigger value="items" className="flex-1 sm:flex-none">Articles</TabsTrigger>
+            <TabsTrigger value="categories" className="flex-1 sm:flex-none">Catégories</TabsTrigger>
           </TabsList>
 
           {/* Items Tab */}
@@ -231,75 +231,77 @@ export default function AdminMenu() {
                   </Select>
                 </div>
 
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Article</TableHead>
-                      <TableHead>Catégorie</TableHead>
-                      <TableHead>Prix</TableHead>
-                      <TableHead>Statut</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredItems.map((item) => {
-                      const category = menuCategories.find(c => c.id === item.categoryId);
-                      return (
-                        <TableRow key={item.id}>
-                          <TableCell>
-                            <div className="font-medium">{item.name}</div>
-                            {item.description && (
-                              <div className="text-sm text-muted-foreground truncate max-w-xs">
-                                {item.description}
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Article</TableHead>
+                        <TableHead>Catégorie</TableHead>
+                        <TableHead>Prix</TableHead>
+                        <TableHead>Statut</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredItems.map((item) => {
+                        const category = menuCategories.find(c => c.id === item.categoryId);
+                        return (
+                          <TableRow key={item.id}>
+                            <TableCell>
+                              <div className="font-medium">{item.name}</div>
+                              {item.description && (
+                                <div className="text-sm text-muted-foreground truncate max-w-[200px]">
+                                  {item.description}
+                                </div>
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              <Badge variant="outline">{category?.name}</Badge>
+                            </TableCell>
+                            <TableCell className="font-medium">{item.price} DA</TableCell>
+                            <TableCell>
+                              <div className="flex items-center gap-2">
+                                <Switch
+                                  checked={item.isActive}
+                                  onCheckedChange={() => handleToggleItemActive(item)}
+                                />
+                                <span className="text-sm text-muted-foreground hidden sm:inline">
+                                  {item.isActive ? 'Actif' : 'Inactif'}
+                                </span>
                               </div>
-                            )}
-                          </TableCell>
-                          <TableCell>
-                            <Badge variant="outline">{category?.name}</Badge>
-                          </TableCell>
-                          <TableCell className="font-medium">{item.price} DA</TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-2">
-                              <Switch
-                                checked={item.isActive}
-                                onCheckedChange={() => handleToggleItemActive(item)}
-                              />
-                              <span className="text-sm text-muted-foreground">
-                                {item.isActive ? 'Actif' : 'Inactif'}
-                              </span>
-                            </div>
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <div className="flex justify-end gap-1">
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => openItemDialog(item)}
-                              >
-                                <Edit className="w-4 h-4" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="text-destructive hover:text-destructive"
-                                onClick={() => setDeleteDialog({ type: 'item', id: item.id })}
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </Button>
-                            </div>
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <div className="flex justify-end gap-1">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => openItemDialog(item)}
+                                >
+                                  <Edit className="w-4 h-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="text-destructive hover:text-destructive"
+                                  onClick={() => setDeleteDialog({ type: 'item', id: item.id })}
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                      {filteredItems.length === 0 && (
+                        <TableRow>
+                          <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                            Aucun article trouvé
                           </TableCell>
                         </TableRow>
-                      );
-                    })}
-                    {filteredItems.length === 0 && (
-                      <TableRow>
-                        <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
-                          Aucun article trouvé
-                        </TableCell>
-                      </TableRow>
-                    )}
-                  </TableBody>
-                </Table>
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
@@ -315,66 +317,68 @@ export default function AdminMenu() {
                 </Button>
               </CardHeader>
               <CardContent>
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Ordre</TableHead>
-                      <TableHead>Icône</TableHead>
-                      <TableHead>Nom</TableHead>
-                      <TableHead>Articles</TableHead>
-                      <TableHead>Statut</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {menuCategories.sort((a, b) => a.order - b.order).map((category) => {
-                      const IconComponent = iconMap[category.icon] || Coffee;
-                      const itemCount = menuItems.filter(i => i.categoryId === category.id).length;
-                      
-                      return (
-                        <TableRow key={category.id}>
-                          <TableCell>
-                            <div className="flex items-center gap-2">
-                              <GripVertical className="w-4 h-4 text-muted-foreground cursor-move" />
-                              <span>{category.order}</span>
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
-                              <IconComponent className="w-4 h-4 text-primary" />
-                            </div>
-                          </TableCell>
-                          <TableCell className="font-medium">{category.name}</TableCell>
-                          <TableCell>{itemCount} articles</TableCell>
-                          <TableCell>
-                            <Badge variant={category.isActive ? "default" : "secondary"}>
-                              {category.isActive ? 'Active' : 'Inactive'}
-                            </Badge>
-                          </TableCell>
-                          <TableCell className="text-right">
-                            <div className="flex justify-end gap-1">
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => openCategoryDialog(category)}
-                              >
-                                <Edit className="w-4 h-4" />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="text-destructive hover:text-destructive"
-                                onClick={() => setDeleteDialog({ type: 'category', id: category.id })}
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </Button>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Ordre</TableHead>
+                        <TableHead>Icône</TableHead>
+                        <TableHead>Nom</TableHead>
+                        <TableHead>Articles</TableHead>
+                        <TableHead>Statut</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {menuCategories.sort((a, b) => a.order - b.order).map((category) => {
+                        const IconComponent = iconMap[category.icon] || Coffee;
+                        const itemCount = menuItems.filter(i => i.categoryId === category.id).length;
+
+                        return (
+                          <TableRow key={category.id}>
+                            <TableCell>
+                              <div className="flex items-center gap-2">
+                                <GripVertical className="w-4 h-4 text-muted-foreground cursor-move" />
+                                <span>{category.order}</span>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
+                                <IconComponent className="w-4 h-4 text-primary" />
+                              </div>
+                            </TableCell>
+                            <TableCell className="font-medium">{category.name}</TableCell>
+                            <TableCell>{itemCount} articles</TableCell>
+                            <TableCell>
+                              <Badge variant={category.isActive ? "default" : "secondary"}>
+                                {category.isActive ? 'Active' : 'Inactive'}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <div className="flex justify-end gap-1">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => openCategoryDialog(category)}
+                                >
+                                  <Edit className="w-4 h-4" />
+                                </Button>
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="text-destructive hover:text-destructive"
+                                  onClick={() => setDeleteDialog({ type: 'category', id: category.id })}
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
@@ -393,15 +397,15 @@ export default function AdminMenu() {
                 <Label>Nom de la catégorie</Label>
                 <Input
                   value={categoryForm.name}
-                  onChange={(e) => setCategoryForm({...categoryForm, name: e.target.value})}
+                  onChange={(e) => setCategoryForm({ ...categoryForm, name: e.target.value })}
                   placeholder="Ex: Boissons Chaudes"
                 />
               </div>
               <div className="space-y-2">
                 <Label>Icône</Label>
-                <Select 
-                  value={categoryForm.icon} 
-                  onValueChange={(v) => setCategoryForm({...categoryForm, icon: v})}
+                <Select
+                  value={categoryForm.icon}
+                  onValueChange={(v) => setCategoryForm({ ...categoryForm, icon: v })}
                 >
                   <SelectTrigger>
                     <SelectValue />
@@ -446,15 +450,15 @@ export default function AdminMenu() {
                 <Label>Nom de l'article</Label>
                 <Input
                   value={itemForm.name}
-                  onChange={(e) => setItemForm({...itemForm, name: e.target.value})}
+                  onChange={(e) => setItemForm({ ...itemForm, name: e.target.value })}
                   placeholder="Ex: Café Express"
                 />
               </div>
               <div className="space-y-2">
                 <Label>Catégorie</Label>
-                <Select 
-                  value={itemForm.categoryId} 
-                  onValueChange={(v) => setItemForm({...itemForm, categoryId: v})}
+                <Select
+                  value={itemForm.categoryId}
+                  onValueChange={(v) => setItemForm({ ...itemForm, categoryId: v })}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Sélectionner une catégorie" />
@@ -471,7 +475,7 @@ export default function AdminMenu() {
                 <Input
                   type="number"
                   value={itemForm.price}
-                  onChange={(e) => setItemForm({...itemForm, price: e.target.value})}
+                  onChange={(e) => setItemForm({ ...itemForm, price: e.target.value })}
                   placeholder="100"
                 />
               </div>
@@ -479,7 +483,7 @@ export default function AdminMenu() {
                 <Label>Description (optionnel)</Label>
                 <Textarea
                   value={itemForm.description}
-                  onChange={(e) => setItemForm({...itemForm, description: e.target.value})}
+                  onChange={(e) => setItemForm({ ...itemForm, description: e.target.value })}
                   placeholder="Description de l'article..."
                   rows={3}
                 />
@@ -487,7 +491,7 @@ export default function AdminMenu() {
               <div className="flex items-center gap-2">
                 <Switch
                   checked={itemForm.isActive}
-                  onCheckedChange={(checked) => setItemForm({...itemForm, isActive: checked})}
+                  onCheckedChange={(checked) => setItemForm({ ...itemForm, isActive: checked })}
                 />
                 <Label>Article actif</Label>
               </div>

@@ -26,9 +26,14 @@ app.use('/api', routes);
 
 // Send 404 error for unknown api requested
 app.use((req, res, next) => {
-    next(new ApiError(404, 'Not found'));
+    res.status(404).send({ message: 'Not found' });
 });
 
-
+// Generic error handler
+app.use((err, req, res, next) => {
+    const status = err.status || 500;
+    const message = err.message || 'Internal Server Error';
+    res.status(status).send({ message });
+});
 
 module.exports = app;

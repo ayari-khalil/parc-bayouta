@@ -1,19 +1,43 @@
+import { useState, useEffect } from "react";
 import { Calendar, Users, PartyPopper, CalendarDays, TrendingUp, Clock } from "lucide-react";
 import { AdminLayout } from "@/components/layout/AdminLayout";
-import { fieldReservations, hallReservations, events, eventReservations, contactMessages } from "@/data/mockData";
-
-const stats = [
-  { label: "Réservations terrains", value: fieldReservations.length, icon: Calendar, color: "text-primary" },
-  { label: "Réservations salle", value: hallReservations.length, icon: PartyPopper, color: "text-secondary" },
-  { label: "Événements actifs", value: events.filter(e => e.isActive).length, icon: CalendarDays, color: "text-accent" },
-  { label: "Messages non lus", value: contactMessages.filter(m => m.status === 'new').length, icon: Users, color: "text-destructive" },
-];
-
-const recentReservations = [...fieldReservations].sort((a, b) => 
-  new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-).slice(0, 5);
+import { fieldReservations, events, eventReservations, contactMessages } from "@/data/mockData";
+import { reservationApi, HallReservation } from "@/lib/api/reservation";
+import { format } from "date-fns";
+import { fr } from "date-fns/locale";
 
 export default function AdminDashboard() {
+  const [realHallReservations, setRealHallReservations] = useState<HallReservation[]>([]);
+
+  useEffect(() => {
+    fetchHallReservations();
+    const interval = setInterval(fetchHallReservations, 5000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const fetchHallReservations = async () => {
+    try {
+      const data = await reservationApi.getAllHallReservations();
+      setRealHallReservations(data);
+    } catch (error) {
+      console.error("Failed to fetch hall reservations:", error);
+    }
+  };
+
+  const stats = [
+    { label: "Réservations terrains", value: fieldReservations.length, icon: Calendar, color: "text-primary" },
+    { label: "Réservations salle", value: realHallReservations.length, icon: PartyPopper, color: "text-secondary" },
+    { label: "Événements actifs", value: events.filter(e => e.isActive).length, icon: CalendarDays, color: "text-accent" },
+    { label: "Messages non lus", value: contactMessages.filter(m => m.status === 'new').length, icon: Users, color: "text-destructive" },
+  ];
+
+  const recentFieldReservations = [...fieldReservations].sort((a, b) =>
+    new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+  ).slice(0, 5);
+
+  const recentHallReservations = [...realHallReservations].sort((a, b) =>
+    new Date(b.createdAt || '').getTime() - new Date(a.createdAt || '').getTime()
+  ).slice(0, 5);
   return (
     <AdminLayout>
       <div className="space-y-6">
@@ -47,17 +71,16 @@ export default function AdminDashboard() {
               Dernières réservations terrains
             </h2>
             <div className="space-y-3">
-              {recentReservations.map((res) => (
+              {recentFieldReservations.map((res) => (
                 <div key={res.id} className="flex items-center justify-between p-3 bg-muted/50 rounded-lg">
                   <div>
                     <p className="font-medium text-foreground">{res.customerName}</p>
                     <p className="text-sm text-muted-foreground">Terrain {res.fieldId} • {res.date} à {res.timeSlot}</p>
                   </div>
-                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                    res.status === 'confirmed' ? 'bg-green-500/10 text-green-600' :
+                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${res.status === 'confirmed' ? 'bg-green-500/10 text-green-600' :
                     res.status === 'pending' ? 'bg-yellow-500/10 text-yellow-600' :
-                    'bg-red-500/10 text-red-600'
-                  }`}>
+                      'bg-red-500/10 text-red-600'
+                    }`}>
                     {res.status === 'confirmed' ? 'Confirmé' : res.status === 'pending' ? 'En attente' : 'Annulé'}
                   </span>
                 </div>
@@ -78,7 +101,7 @@ export default function AdminDashboard() {
                     <p className="text-sm text-muted-foreground">{event.date} • {event.currentReservations}/{event.maxCapacity} inscrits</p>
                   </div>
                   <div className="w-16 h-2 bg-muted rounded-full overflow-hidden">
-                    <div 
+                    <div
                       className="h-full bg-primary rounded-full"
                       style={{ width: `${(event.currentReservations / event.maxCapacity) * 100}%` }}
                     />

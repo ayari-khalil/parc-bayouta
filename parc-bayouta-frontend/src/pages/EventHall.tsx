@@ -1,13 +1,26 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Calendar, Users, PartyPopper, Check, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { format, addMonths, startOfMonth, endOfMonth, eachDayOfInterval, isToday, isBefore, getDay } from "date-fns";
 import { fr } from "date-fns/locale";
 import { PublicLayout } from "@/components/layout/PublicLayout";
-import { hallReservations } from "@/data/mockData";
-import salleImg from "@/assets/salle-fetes.jpg";
+import { reservationApi, HallReservation } from "@/lib/api/reservation";
 import { useToast } from "@/hooks/use-toast";
+import salle5 from "@/assets/gallery/salle/salle-1.jpg";
+import salle2 from "@/assets/gallery/salle/salle-2.jpg";
+import salle3 from "@/assets/gallery/salle/salle-3.jpg";
+import salle4 from "@/assets/gallery/salle/salle-4.jpg";
+import salle1 from "@/assets/gallery/salle/salle-5.jpg";
+import { Maximize2, X as CloseIcon } from "lucide-react";
+
+const galleryImages = [
+  { src: salle1, alt: "Salle des fêtes - Vue d'ensemble" },
+  { src: salle2, alt: "Salle des fêtes - Décoration table" },
+  { src: salle3, alt: "Salle des fêtes - Espace lounge" },
+  { src: salle4, alt: "Salle des fêtes - Banquet" },
+  { src: salle5, alt: "Salle des fêtes - Scène" },
+];
 
 const eventTypes = [
   "Mariage",
@@ -22,6 +35,7 @@ export default function EventHall() {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [showForm, setShowForm] = useState(false);
+  const [existingReservations, setExistingReservations] = useState<HallReservation[]>([]);
   const [formData, setFormData] = useState({
     name: "",
     phone: "",
@@ -29,19 +43,39 @@ export default function EventHall() {
     guests: "",
     message: "",
   });
+  const [activeImageIndex, setActiveImageIndex] = useState(0);
+  const [isLightboxOpen, setIsLightboxOpen] = useState(false);
   const { toast } = useToast();
+
+  useEffect(() => {
+    fetchReservations();
+  }, []);
+
+  const fetchReservations = async () => {
+    try {
+      const data = await reservationApi.getAllHallReservations();
+      setExistingReservations(data);
+    } catch (error) {
+      console.error("Failed to fetch reservations:", error);
+    }
+  };
 
   const monthStart = startOfMonth(currentMonth);
   const monthEnd = endOfMonth(currentMonth);
   const monthDays = eachDayOfInterval({ start: monthStart, end: monthEnd });
-  
+
   const startDay = getDay(monthStart);
   const adjustedStartDay = startDay === 0 ? 6 : startDay - 1;
 
-  const isDateBooked = (date: Date) => {
+  const getReservationForDate = (date: Date) => {
     const dateStr = format(date, "yyyy-MM-dd");
-    return hallReservations.some(r => r.date === dateStr && r.status !== 'canceled');
+    return existingReservations.find(r => {
+      const resDate = format(new Date(r.date), "yyyy-MM-dd");
+      return resDate === dateStr && r.status !== 'canceled';
+    });
   };
+
+  const isDateBooked = (date: Date) => !!getReservationForDate(date);
 
   const handleDateClick = (date: Date) => {
     if (!isDateBooked(date) && !isBefore(date, new Date())) {
@@ -49,15 +83,45 @@ export default function EventHall() {
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    toast({
-      title: "Demande envoyée !",
-      description: "Nous vous contacterons rapidement avec un devis personnalisé.",
-    });
-    setShowForm(false);
-    setSelectedDate(null);
-    setFormData({ name: "", phone: "", eventType: "", guests: "", message: "" });
+    if (!selectedDate) return;
+
+    try {
+      await reservationApi.createHallReservation({
+        date: selectedDate.toISOString(),
+        customerName: formData.name,
+        customerPhone: formData.phone,
+        eventType: formData.eventType,
+        guestCount: parseInt(formData.guests) || 0,
+        message: formData.message,
+      });
+
+      toast({
+        title: "Réservation réussie !",
+        description: "Votre demande a été enregistrée. Nous vous contacterons bientôt.",
+      });
+      setShowForm(false);
+      setSelectedDate(null);
+      setFormData({ name: "", phone: "", eventType: "", guests: "", message: "" });
+      fetchReservations();
+    } catch (error) {
+      toast({
+        title: "Erreur",
+        description: "Une erreur est survenue lors de la réservation. Veuillez réessayer.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const nextImage = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setActiveImageIndex((prev) => (prev + 1) % galleryImages.length);
+  };
+
+  const prevImage = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setActiveImageIndex((prev) => (prev - 1 + galleryImages.length) % galleryImages.length);
   };
 
   return (
@@ -94,11 +158,59 @@ export default function EventHall() {
               className="lg:col-span-1"
             >
               <div className="bg-card rounded-2xl overflow-hidden shadow-card sticky top-24">
-                <img
-                  src={salleImg}
-                  alt="Salle des fêtes"
-                  className="w-full h-48 object-cover"
-                />
+                {/* Image Gallery */}
+                <div className="relative group aspect-[4/3] overflow-hidden bg-muted">
+                  <motion.img
+                    key={activeImageIndex}
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    src={galleryImages[activeImageIndex].src}
+                    alt={galleryImages[activeImageIndex].alt}
+                    className="w-full h-full object-cover"
+                  />
+
+                  {/* Overlay Controls */}
+                  <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-between px-4">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 rounded-full bg-white/20 hover:bg-white/40 text-white backdrop-blur-sm"
+                      onClick={prevImage}
+                    >
+                      <ChevronLeft className="h-5 w-5" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 rounded-full bg-white/20 hover:bg-white/40 text-white backdrop-blur-sm"
+                      onClick={nextImage}
+                    >
+                      <ChevronRight className="h-5 w-5" />
+                    </Button>
+                  </div>
+
+                  {/* Enlarge Button */}
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="absolute top-4 right-4 h-8 w-8 rounded-full bg-black/40 hover:bg-black/60 text-white backdrop-blur-sm opacity-0 group-hover:opacity-100 transition-opacity"
+                    onClick={() => setIsLightboxOpen(true)}
+                  >
+                    <Maximize2 className="h-4 w-4" />
+                  </Button>
+
+                  {/* Indicators */}
+                  <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-1.5">
+                    {galleryImages.map((_, i) => (
+                      <div
+                        key={i}
+                        className={`w-1.5 h-1.5 rounded-full transition-all ${i === activeImageIndex ? "bg-white w-4" : "bg-white/50"
+                          }`}
+                      />
+                    ))}
+                  </div>
+                </div>
+
                 <div className="p-6">
                   <h3 className="font-display text-2xl font-bold text-foreground mb-4">
                     Notre Salle
@@ -128,7 +240,7 @@ export default function EventHall() {
                   <div className="mt-6 p-4 bg-secondary/10 rounded-xl">
                     <p className="text-sm text-foreground font-medium">À partir de</p>
                     <p className="text-3xl font-display font-bold text-secondary">
-                      50 000 DA
+                      4000 TND
                       <span className="text-sm font-body font-normal text-muted-foreground">
                         {" "}/ journée
                       </span>
@@ -192,7 +304,9 @@ export default function EventHall() {
                     ))}
 
                     {monthDays.map((day) => {
-                      const booked = isDateBooked(day);
+                      const reservation = getReservationForDate(day);
+                      const booked = !!reservation;
+                      const isBlocked = reservation?.status === 'blocked';
                       const past = isBefore(day, new Date()) && !isToday(day);
                       const selected = selectedDate && format(day, "yyyy-MM-dd") === format(selectedDate, "yyyy-MM-dd");
 
@@ -201,17 +315,19 @@ export default function EventHall() {
                           key={day.toISOString()}
                           onClick={() => handleDateClick(day)}
                           disabled={booked || past}
-                          className={`aspect-square rounded-lg sm:rounded-xl flex items-center justify-center text-sm sm:text-base font-medium transition-all ${
-                            selected
-                              ? "bg-secondary text-secondary-foreground shadow-lg"
+                          title={isBlocked ? "Date réservée/Indisponible" : booked ? "Déjà réservé" : ""}
+                          className={`aspect-square rounded-lg sm:rounded-xl flex items-center justify-center text-sm sm:text-base font-medium transition-all ${selected
+                            ? "bg-secondary text-secondary-foreground shadow-lg"
+                            : isBlocked
+                              ? "bg-muted text-muted-foreground cursor-not-allowed opacity-60"
                               : booked
-                              ? "bg-destructive/10 text-destructive cursor-not-allowed"
-                              : past
-                              ? "bg-muted/50 text-muted-foreground cursor-not-allowed"
-                              : isToday(day)
-                              ? "bg-primary/10 text-primary hover:bg-primary/20"
-                              : "hover:bg-secondary/10 text-foreground"
-                          }`}
+                                ? "bg-destructive/10 text-destructive cursor-not-allowed"
+                                : past
+                                  ? "bg-muted/50 text-muted-foreground cursor-not-allowed"
+                                  : isToday(day)
+                                    ? "bg-primary/10 text-primary hover:bg-primary/20"
+                                    : "hover:bg-secondary/10 text-foreground"
+                            }`}
                         >
                           {format(day, "d")}
                         </button>
@@ -353,6 +469,75 @@ export default function EventHall() {
               </div>
             </form>
           </motion.div>
+        </motion.div>
+      )}
+
+      {/* Lightbox */}
+      {isLightboxOpen && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="fixed inset-0 bg-black/95 z-[100] flex items-center justify-center"
+          onClick={() => setIsLightboxOpen(false)}
+        >
+          <Button
+            variant="ghost"
+            size="icon"
+            className="absolute top-6 right-6 text-white hover:bg-white/10"
+            onClick={() => setIsLightboxOpen(false)}
+          >
+            <CloseIcon className="h-8 w-8" />
+          </Button>
+
+          <Button
+            variant="ghost"
+            size="icon"
+            className="absolute left-6 text-white hover:bg-white/10 hidden md:flex"
+            onClick={prevImage}
+          >
+            <ChevronLeft className="h-12 w-12" />
+          </Button>
+
+          <motion.img
+            initial={{ scale: 0.9, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            src={galleryImages[activeImageIndex].src}
+            alt={galleryImages[activeImageIndex].alt}
+            className="max-w-full max-h-[90vh] object-contain px-4"
+            onClick={(e) => e.stopPropagation()}
+          />
+
+          <Button
+            variant="ghost"
+            size="icon"
+            className="absolute right-6 text-white hover:bg-white/10 hidden md:flex"
+            onClick={nextImage}
+          >
+            <ChevronRight className="h-12 w-12" />
+          </Button>
+
+          {/* Lightbox Navigation for Mobile */}
+          <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex items-center gap-6 text-white md:hidden">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={prevImage}
+              className="hover:bg-white/10"
+            >
+              <ChevronLeft className="h-8 w-8" />
+            </Button>
+            <span className="text-sm font-medium">
+              {activeImageIndex + 1} / {galleryImages.length}
+            </span>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={nextImage}
+              className="hover:bg-white/10"
+            >
+              <ChevronRight className="h-8 w-8" />
+            </Button>
+          </div>
         </motion.div>
       )}
     </PublicLayout>

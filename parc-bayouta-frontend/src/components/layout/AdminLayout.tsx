@@ -1,11 +1,11 @@
 import { ReactNode, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { 
-  LayoutDashboard, 
-  Calendar, 
-  PartyPopper, 
-  Coffee, 
-  CalendarDays, 
+import {
+  LayoutDashboard,
+  Calendar,
+  PartyPopper,
+  Coffee,
+  CalendarDays,
   ClipboardList,
   MessageSquare,
   Settings,
@@ -63,11 +63,11 @@ export const AdminLayout = ({ children }: AdminLayoutProps) => {
       </div>
 
       {/* Navigation */}
-      <nav className="flex-1 p-4 space-y-1">
+      <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
         {sidebarLinks.map((link) => {
-          const isActive = location.pathname === link.href || 
+          const isActive = location.pathname === link.href ||
             (link.href !== "/admin" && location.pathname.startsWith(link.href));
-          
+
           return (
             <Link
               key={link.name}
@@ -75,8 +75,8 @@ export const AdminLayout = ({ children }: AdminLayoutProps) => {
               onClick={() => setMobileSidebarOpen(false)}
               className={cn(
                 "flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors",
-                isActive 
-                  ? "bg-primary text-primary-foreground" 
+                isActive
+                  ? "bg-primary text-primary-foreground"
                   : "text-muted-foreground hover:bg-muted hover:text-foreground"
               )}
             >
@@ -88,7 +88,7 @@ export const AdminLayout = ({ children }: AdminLayoutProps) => {
       </nav>
 
       {/* User Section */}
-      <div className="p-4 border-t border-border">
+      <div className="p-4 border-t border-border bg-card sticky bottom-0">
         {sidebarOpen && user && (
           <div className="mb-3 px-3">
             <p className="font-medium text-sm text-foreground">{user.username}</p>
@@ -111,11 +111,11 @@ export const AdminLayout = ({ children }: AdminLayoutProps) => {
   );
 
   return (
-    <div className="min-h-screen bg-muted/30 flex">
+    <div className="h-screen bg-muted/30 flex overflow-hidden">
       {/* Desktop Sidebar */}
-      <aside 
+      <aside
         className={cn(
-          "hidden lg:flex flex-col bg-card border-r border-border transition-all duration-300",
+          "hidden lg:flex flex-col bg-card border-r border-border transition-all duration-300 relative",
           sidebarOpen ? "w-64" : "w-20"
         )}
       >
@@ -123,7 +123,7 @@ export const AdminLayout = ({ children }: AdminLayoutProps) => {
         {/* Collapse Button */}
         <button
           onClick={() => setSidebarOpen(!sidebarOpen)}
-          className="absolute left-full top-6 -translate-x-1/2 w-6 h-6 bg-card border border-border rounded-full flex items-center justify-center shadow-sm hover:bg-muted transition-colors"
+          className="absolute left-[calc(100%-12px)] top-6 z-10 w-6 h-6 bg-card border border-border rounded-full flex items-center justify-center shadow-sm hover:bg-muted transition-colors"
         >
           <ChevronLeft className={cn("w-4 h-4 transition-transform", !sidebarOpen && "rotate-180")} />
         </button>
@@ -131,14 +131,14 @@ export const AdminLayout = ({ children }: AdminLayoutProps) => {
 
       {/* Mobile Sidebar Overlay */}
       {mobileSidebarOpen && (
-        <div 
+        <div
           className="fixed inset-0 bg-foreground/50 z-40 lg:hidden"
           onClick={() => setMobileSidebarOpen(false)}
         />
       )}
 
       {/* Mobile Sidebar */}
-      <aside 
+      <aside
         className={cn(
           "fixed top-0 left-0 h-full w-64 bg-card border-r border-border z-50 transform transition-transform lg:hidden flex flex-col",
           mobileSidebarOpen ? "translate-x-0" : "-translate-x-full"
@@ -148,9 +148,9 @@ export const AdminLayout = ({ children }: AdminLayoutProps) => {
       </aside>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col min-h-screen">
+      <div className="flex-1 flex flex-col min-w-0">
         {/* Top Bar */}
-        <header className="h-16 bg-card border-b border-border flex items-center justify-between px-4 lg:px-6">
+        <header className="h-16 bg-card border-b border-border flex items-center justify-between px-4 lg:px-6 flex-shrink-0">
           <div className="flex items-center gap-4">
             <button
               onClick={() => setMobileSidebarOpen(true)}
@@ -158,8 +158,8 @@ export const AdminLayout = ({ children }: AdminLayoutProps) => {
             >
               <Menu className="w-5 h-5" />
             </button>
-            <Link 
-              to="/" 
+            <Link
+              to="/"
               className="text-sm text-muted-foreground hover:text-primary transition-colors"
             >
               ← Retour au site
@@ -173,7 +173,7 @@ export const AdminLayout = ({ children }: AdminLayoutProps) => {
         </header>
 
         {/* Page Content */}
-        <main className="flex-1 p-4 lg:p-6 overflow-auto">
+        <main className="flex-1 p-4 lg:p-6 overflow-y-auto min-h-0 pb-12">
           {children}
         </main>
       </div>

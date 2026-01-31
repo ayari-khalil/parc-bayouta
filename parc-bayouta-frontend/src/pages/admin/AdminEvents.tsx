@@ -6,13 +6,13 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
 } from "@/components/ui/table";
 import {
   Dialog,
@@ -32,12 +32,12 @@ import {
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import { 
-  events, 
-  eventReservations, 
-  getCategoryLabel, 
+import {
+  events,
+  eventReservations,
+  getCategoryLabel,
   getCategoryColor,
-  Event 
+  Event
 } from "@/data/mockData";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -56,7 +56,7 @@ export default function AdminEvents() {
   const [searchQuery, setSearchQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
-  
+
   // Event dialog
   const [showEventDialog, setShowEventDialog] = useState(false);
   const [editingEvent, setEditingEvent] = useState<Event | null>(null);
@@ -85,7 +85,7 @@ export default function AdminEvents() {
   const filteredEvents = events.filter(event => {
     const matchesSearch = event.title.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesCategory = categoryFilter === "all" || event.category === categoryFilter;
-    const matchesStatus = statusFilter === "all" || 
+    const matchesStatus = statusFilter === "all" ||
       (statusFilter === "active" && event.isActive) ||
       (statusFilter === "inactive" && !event.isActive) ||
       (statusFilter === "featured" && event.isFeatured);
@@ -276,111 +276,113 @@ export default function AdminEvents() {
             <CardTitle>Liste des Événements ({filteredEvents.length})</CardTitle>
           </CardHeader>
           <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Événement</TableHead>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Catégorie</TableHead>
-                  <TableHead>Prix</TableHead>
-                  <TableHead>Réservations</TableHead>
-                  <TableHead>Statut</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredEvents.map((event) => (
-                  <TableRow key={event.id}>
-                    <TableCell>
-                      <div className="flex items-center gap-3">
-                        {event.isFeatured && (
-                          <Star className="w-4 h-4 text-amber-500 fill-amber-500" />
-                        )}
-                        <div>
-                          <div className="font-medium">{event.title}</div>
-                          <div className="text-sm text-muted-foreground truncate max-w-xs">
-                            {event.description}
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Événement</TableHead>
+                    <TableHead>Date</TableHead>
+                    <TableHead>Catégorie</TableHead>
+                    <TableHead>Prix</TableHead>
+                    <TableHead>Réservations</TableHead>
+                    <TableHead>Statut</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredEvents.map((event) => (
+                    <TableRow key={event.id}>
+                      <TableCell>
+                        <div className="flex items-center gap-3">
+                          {event.isFeatured && (
+                            <Star className="w-4 h-4 text-amber-500 fill-amber-500" />
+                          )}
+                          <div>
+                            <div className="font-medium truncate max-w-[150px]">{event.title}</div>
+                            <div className="text-sm text-muted-foreground truncate max-w-[150px]">
+                              {event.description}
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Calendar className="w-4 h-4 text-muted-foreground" />
-                        <div>
-                          <div>{format(new Date(event.date), 'dd MMM yyyy', { locale: fr })}</div>
-                          <div className="text-sm text-muted-foreground">{event.time}</div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <Calendar className="w-4 h-4 text-muted-foreground" />
+                          <div className="whitespace-nowrap">
+                            <div>{format(new Date(event.date), 'dd MMM yyyy', { locale: fr })}</div>
+                            <div className="text-sm text-muted-foreground">{event.time}</div>
+                          </div>
                         </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge className={getCategoryColor(event.category)}>
-                        {getCategoryLabel(event.category)}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="font-medium">{event.price} DA</TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Users className="w-4 h-4 text-muted-foreground" />
-                        <span>{event.currentReservations} / {event.maxCapacity}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Switch
-                        checked={event.isActive}
-                        onCheckedChange={() => handleToggleActive(event)}
-                      />
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-1">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleToggleFeatured(event)}
-                          title={event.isFeatured ? "Retirer des featured" : "Mettre en avant"}
-                        >
-                          {event.isFeatured ? (
-                            <StarOff className="w-4 h-4" />
-                          ) : (
-                            <Star className="w-4 h-4" />
-                          )}
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => setViewingEvent(event)}
-                          title="Voir les réservations"
-                        >
-                          <Ticket className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => openEventDialog(event)}
-                        >
-                          <Edit className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="text-destructive hover:text-destructive"
-                          onClick={() => setDeleteEventId(event.id)}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-                {filteredEvents.length === 0 && (
-                  <TableRow>
-                    <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
-                      Aucun événement trouvé
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
+                      </TableCell>
+                      <TableCell>
+                        <Badge className={getCategoryColor(event.category)}>
+                          {getCategoryLabel(event.category)}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="font-medium whitespace-nowrap">{event.price} DA</TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2 whitespace-nowrap">
+                          <Users className="w-4 h-4 text-muted-foreground" />
+                          <span>{event.currentReservations} / {event.maxCapacity}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Switch
+                          checked={event.isActive}
+                          onCheckedChange={() => handleToggleActive(event)}
+                        />
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-1">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleToggleFeatured(event)}
+                            title={event.isFeatured ? "Retirer des featured" : "Mettre en avant"}
+                          >
+                            {event.isFeatured ? (
+                              <StarOff className="w-4 h-4" />
+                            ) : (
+                              <Star className="w-4 h-4" />
+                            )}
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => setViewingEvent(event)}
+                            title="Voir les réservations"
+                          >
+                            <Ticket className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => openEventDialog(event)}
+                          >
+                            <Edit className="w-4 h-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="text-destructive hover:text-destructive"
+                            onClick={() => setDeleteEventId(event.id)}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                  {filteredEvents.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                        Aucun événement trouvé
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </div>
           </CardContent>
         </Card>
 
@@ -398,7 +400,7 @@ export default function AdminEvents() {
                   <Label>Titre</Label>
                   <Input
                     value={eventForm.title}
-                    onChange={(e) => setEventForm({...eventForm, title: e.target.value})}
+                    onChange={(e) => setEventForm({ ...eventForm, title: e.target.value })}
                     placeholder="Titre de l'événement"
                   />
                 </div>
@@ -406,7 +408,7 @@ export default function AdminEvents() {
                   <Label>Description courte</Label>
                   <Textarea
                     value={eventForm.description}
-                    onChange={(e) => setEventForm({...eventForm, description: e.target.value})}
+                    onChange={(e) => setEventForm({ ...eventForm, description: e.target.value })}
                     placeholder="Description courte pour les cartes..."
                     rows={2}
                   />
@@ -415,7 +417,7 @@ export default function AdminEvents() {
                   <Label>Description complète</Label>
                   <Textarea
                     value={eventForm.longDescription}
-                    onChange={(e) => setEventForm({...eventForm, longDescription: e.target.value})}
+                    onChange={(e) => setEventForm({ ...eventForm, longDescription: e.target.value })}
                     placeholder="Description détaillée de l'événement..."
                     rows={4}
                   />
@@ -425,14 +427,14 @@ export default function AdminEvents() {
                   <Input
                     type="date"
                     value={eventForm.date}
-                    onChange={(e) => setEventForm({...eventForm, date: e.target.value})}
+                    onChange={(e) => setEventForm({ ...eventForm, date: e.target.value })}
                   />
                 </div>
                 <div className="space-y-2">
                   <Label>Catégorie</Label>
-                  <Select 
-                    value={eventForm.category} 
-                    onValueChange={(v) => setEventForm({...eventForm, category: v as Event['category']})}
+                  <Select
+                    value={eventForm.category}
+                    onValueChange={(v) => setEventForm({ ...eventForm, category: v as Event['category'] })}
                   >
                     <SelectTrigger>
                       <SelectValue />
@@ -449,7 +451,7 @@ export default function AdminEvents() {
                   <Input
                     type="time"
                     value={eventForm.time}
-                    onChange={(e) => setEventForm({...eventForm, time: e.target.value})}
+                    onChange={(e) => setEventForm({ ...eventForm, time: e.target.value })}
                   />
                 </div>
                 <div className="space-y-2">
@@ -457,7 +459,7 @@ export default function AdminEvents() {
                   <Input
                     type="time"
                     value={eventForm.endTime}
-                    onChange={(e) => setEventForm({...eventForm, endTime: e.target.value})}
+                    onChange={(e) => setEventForm({ ...eventForm, endTime: e.target.value })}
                   />
                 </div>
                 <div className="space-y-2">
@@ -465,7 +467,7 @@ export default function AdminEvents() {
                   <Input
                     type="number"
                     value={eventForm.price}
-                    onChange={(e) => setEventForm({...eventForm, price: e.target.value})}
+                    onChange={(e) => setEventForm({ ...eventForm, price: e.target.value })}
                     placeholder="500"
                   />
                 </div>
@@ -474,7 +476,7 @@ export default function AdminEvents() {
                   <Input
                     type="number"
                     value={eventForm.maxCapacity}
-                    onChange={(e) => setEventForm({...eventForm, maxCapacity: e.target.value})}
+                    onChange={(e) => setEventForm({ ...eventForm, maxCapacity: e.target.value })}
                     placeholder="100"
                   />
                 </div>
@@ -482,21 +484,21 @@ export default function AdminEvents() {
                   <Label>Lieu</Label>
                   <Input
                     value={eventForm.location}
-                    onChange={(e) => setEventForm({...eventForm, location: e.target.value})}
+                    onChange={(e) => setEventForm({ ...eventForm, location: e.target.value })}
                     placeholder="Ex: Salle des fêtes, Terrain 1..."
                   />
                 </div>
                 <div className="flex items-center gap-4">
                   <Switch
                     checked={eventForm.isActive}
-                    onCheckedChange={(checked) => setEventForm({...eventForm, isActive: checked})}
+                    onCheckedChange={(checked) => setEventForm({ ...eventForm, isActive: checked })}
                   />
                   <Label>Événement actif</Label>
                 </div>
                 <div className="flex items-center gap-4">
                   <Switch
                     checked={eventForm.isFeatured}
-                    onCheckedChange={(checked) => setEventForm({...eventForm, isFeatured: checked})}
+                    onCheckedChange={(checked) => setEventForm({ ...eventForm, isFeatured: checked })}
                   />
                   <Label>Mettre en avant</Label>
                 </div>

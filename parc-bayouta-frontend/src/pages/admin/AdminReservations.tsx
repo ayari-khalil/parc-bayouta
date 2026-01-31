@@ -1,17 +1,17 @@
-import { useState } from "react";
-import { Search, Calendar, Users, Clock, Check, X, Eye, Download, Filter } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { Search, Calendar, Users, Clock, Check, X, Eye, Download, Filter, Trash2 } from "lucide-react";
 import { AdminLayout } from "@/components/layout/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
 } from "@/components/ui/table";
 import {
   Dialog,
@@ -30,20 +30,21 @@ import {
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { 
-  fieldReservations, 
-  hallReservations, 
+import {
   eventReservations,
   events,
-  fields,
-  getStatusColor, 
+  getStatusColor,
   getStatusLabel,
-  FieldReservation,
-  HallReservation,
   EventReservation
 } from "@/data/mockData";
+import { reservationApi, HallReservation, FieldReservation } from "@/lib/api/reservation";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
+
+const initialFields = [
+  { id: 1, name: "Terrain 1" },
+  { id: 2, name: "Terrain 2" },
+];
 
 type ReservationType = 'field' | 'hall' | 'event';
 
@@ -53,49 +54,162 @@ export default function AdminReservations() {
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [dateFilter, setDateFilter] = useState<string>("");
-  
+  const [fields, setFields] = useState(initialFields);
+
+  const [realFieldReservations, setRealFieldReservations] = useState<FieldReservation[]>([]);
   const [selectedFieldRes, setSelectedFieldRes] = useState<FieldReservation | null>(null);
+  const [realHallReservations, setRealHallReservations] = useState<HallReservation[]>([]);
   const [selectedHallRes, setSelectedHallRes] = useState<HallReservation | null>(null);
   const [selectedEventRes, setSelectedEventRes] = useState<EventReservation | null>(null);
 
+  const lastResCount = useRef(0);
+  const notificationSound = useRef<HTMLAudioElement | null>(null);
+
+  useEffect(() => {
+    notificationSound.current = new Audio("https://assets.mixkit.co/active_storage/sfx/2358/2358-preview.mp3");
+
+    fetchInitialData();
+    const interval = setInterval(() => {
+      fetchHallReservations();
+      fetchFieldReservations();
+    }, 5000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const fetchInitialData = async () => {
+    try {
+      const fieldsData = await reservationApi.getFields();
+      if (fieldsData.length > 0) {
+        setFields(prev => prev.map(f => {
+          const dbField = fieldsData.find(df => df.name === f.name);
+          return dbField ? { ...f, dbId: dbField._id } : f;
+        }));
+      }
+      fetchHallReservations();
+      fetchFieldReservations();
+    } catch (error) {
+      console.error("Failed to fetch initial data:", error);
+    }
+  };
+
+  const fetchHallReservations = async () => {
+    try {
+      const data = await reservationApi.getAllHallReservations();
+
+      if (data.length > lastResCount.current && lastResCount.current > 0) {
+        notificationSound.current?.play().catch(e => console.log("Sound play failed:", e));
+        toast({
+          title: "Nouvelle réservation !",
+          description: "Une nouvelle demande de réservation pour la salle a été reçue.",
+        });
+      }
+
+      setRealHallReservations(data);
+      lastResCount.current = data.length;
+    } catch (error) {
+      console.error("Failed to fetch hall reservations:", error);
+    }
+  };
+
+  const fetchFieldReservations = async () => {
+    try {
+      const data = await reservationApi.getAllFieldReservations();
+      setRealFieldReservations(data);
+    } catch (error) {
+      console.error("Failed to fetch field reservations:", error);
+    }
+  };
+
   // Filter field reservations
-  const filteredFieldReservations = fieldReservations.filter(res => {
-    const matchesSearch = 
+  const filteredFieldReservations = realFieldReservations.filter(res => {
+    const matchesSearch =
       res.customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
       res.customerPhone.includes(searchQuery);
     const matchesStatus = statusFilter === "all" || res.status === statusFilter;
-    const matchesDate = !dateFilter || res.date === dateFilter;
+    const matchesDate = !dateFilter || format(new Date(res.date), "yyyy-MM-dd") === dateFilter;
     return matchesSearch && matchesStatus && matchesDate;
   });
 
   // Filter hall reservations
-  const filteredHallReservations = hallReservations.filter(res => {
-    const matchesSearch = 
+  const filteredHallReservations = realHallReservations.filter(res => {
+    const matchesSearch =
       res.customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
       res.customerPhone.includes(searchQuery) ||
       res.eventType.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesStatus = statusFilter === "all" || res.status === statusFilter;
-    const matchesDate = !dateFilter || res.date === dateFilter;
+    const matchesDate = !dateFilter || format(new Date(res.date), "yyyy-MM-dd") === dateFilter;
     return matchesSearch && matchesStatus && matchesDate;
   });
 
   // Filter event reservations
   const filteredEventReservations = eventReservations.filter(res => {
-    const matchesSearch = 
+    const matchesSearch =
       res.customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
       res.customerPhone.includes(searchQuery);
     const matchesStatus = statusFilter === "all" || res.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
 
-  const handleStatusChange = (type: ReservationType, id: string, newStatus: 'confirmed' | 'canceled') => {
-    toast({
-      title: newStatus === 'confirmed' ? "Réservation confirmée" : "Réservation annulée",
-      description: `La réservation a été ${newStatus === 'confirmed' ? 'confirmée' : 'annulée'} avec succès.`,
-    });
+  const handleStatusChange = async (type: ReservationType, id: string, newStatus: 'confirmed' | 'canceled') => {
+    if (type === 'hall') {
+      try {
+        await reservationApi.updateHallReservationStatus(id, newStatus);
+        fetchHallReservations();
+        toast({
+          title: newStatus === 'confirmed' ? "Réservation confirmée" : "Réservation annulée",
+          description: `La réservation a été ${newStatus === 'confirmed' ? 'confirmée' : 'annulée'} avec succès.`,
+        });
+      } catch (error) {
+        toast({
+          title: "Erreur",
+          description: "Impossible de mettre à jour le statut.",
+          variant: "destructive",
+        });
+      }
+    } else if (type === 'field') {
+      try {
+        await reservationApi.updateFieldReservationStatus(id, newStatus);
+        fetchFieldReservations();
+        toast({
+          title: newStatus === 'confirmed' ? "Réservation confirmée" : "Réservation annulée",
+          description: `La réservation a été ${newStatus === 'confirmed' ? 'confirmée' : 'annulée'} avec succès.`,
+        });
+      } catch (error) {
+        toast({
+          title: "Erreur",
+          description: "Impossible de mettre à jour le statut.",
+          variant: "destructive",
+        });
+      }
+    } else {
+      toast({
+        title: newStatus === 'confirmed' ? "Réservation confirmée" : "Réservation annulée",
+        description: `La réservation a été ${newStatus === 'confirmed' ? 'confirmée' : 'annulée'} avec succès. (Mode Mock)`,
+      });
+    }
     setSelectedFieldRes(null);
     setSelectedHallRes(null);
     setSelectedEventRes(null);
+  };
+
+  const handleDeleteHallReservation = async (reservationId: string) => {
+    if (!window.confirm("Êtes-vous sûr de vouloir supprimer cette réservation définitivement ?")) return;
+
+    try {
+      await reservationApi.deleteHallReservation(reservationId);
+      fetchHallReservations();
+      toast({
+        title: "Réservation supprimée",
+        description: "La réservation a été supprimée avec succès.",
+      });
+      setSelectedHallRes(null);
+    } catch (error) {
+      toast({
+        title: "Erreur",
+        description: "Impossible de supprimer la réservation.",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleExportCSV = () => {
@@ -106,19 +220,19 @@ export default function AdminReservations() {
   };
 
   const getTotalReservations = () => {
-    return fieldReservations.length + hallReservations.length + eventReservations.length;
+    return realFieldReservations.length + realHallReservations.length + eventReservations.length;
   };
 
   const getPendingReservations = () => {
-    return fieldReservations.filter(r => r.status === 'pending').length +
-           hallReservations.filter(r => r.status === 'pending').length +
-           eventReservations.filter(r => r.status === 'pending').length;
+    return realFieldReservations.filter(r => r.status === 'pending').length +
+      realHallReservations.filter(r => r.status === 'pending').length +
+      eventReservations.filter(r => r.status === 'pending').length;
   };
 
   const getTodayReservations = () => {
     const today = format(new Date(), 'yyyy-MM-dd');
-    return fieldReservations.filter(r => r.date === today).length +
-           hallReservations.filter(r => r.date === today).length;
+    return realFieldReservations.filter(r => format(new Date(r.date), 'yyyy-MM-dd') === today).length +
+      realHallReservations.filter(r => format(new Date(r.date), 'yyyy-MM-dd') === today).length;
   };
 
   return (
@@ -176,7 +290,7 @@ export default function AdminReservations() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                {fieldReservations.length} / {hallReservations.length} / {eventReservations.length}
+                {realFieldReservations.length} / {realHallReservations.length} / {eventReservations.length}
               </div>
             </CardContent>
           </Card>
@@ -206,6 +320,7 @@ export default function AdminReservations() {
                   <SelectItem value="pending">En attente</SelectItem>
                   <SelectItem value="confirmed">Confirmé</SelectItem>
                   <SelectItem value="canceled">Annulé</SelectItem>
+                  <SelectItem value="blocked">Bloqué</SelectItem>
                 </SelectContent>
               </Select>
               <Input
@@ -241,216 +356,40 @@ export default function AdminReservations() {
           <TabsContent value="field">
             <Card>
               <CardContent className="pt-6">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Date</TableHead>
-                      <TableHead>Créneau</TableHead>
-                      <TableHead>Terrain</TableHead>
-                      <TableHead>Client</TableHead>
-                      <TableHead>Statut</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredFieldReservations.map((res) => (
-                      <TableRow key={res.id}>
-                        <TableCell>
-                          {format(new Date(res.date), 'dd MMM yyyy', { locale: fr })}
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-1">
-                            <Clock className="w-4 h-4 text-muted-foreground" />
-                            {res.timeSlot}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          {fields.find(f => f.id === res.fieldId)?.name}
-                        </TableCell>
-                        <TableCell>
-                          <div>
-                            <div className="font-medium">{res.customerName}</div>
-                            <div className="text-sm text-muted-foreground">{res.customerPhone}</div>
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <Badge className={getStatusColor(res.status)}>
-                            {getStatusLabel(res.status)}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex justify-end gap-1">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => setSelectedFieldRes(res)}
-                            >
-                              <Eye className="w-4 h-4" />
-                            </Button>
-                            {res.status === 'pending' && (
-                              <>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="text-green-600"
-                                  onClick={() => handleStatusChange('field', res.id, 'confirmed')}
-                                >
-                                  <Check className="w-4 h-4" />
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="text-destructive"
-                                  onClick={() => handleStatusChange('field', res.id, 'canceled')}
-                                >
-                                  <X className="w-4 h-4" />
-                                </Button>
-                              </>
-                            )}
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                    {filteredFieldReservations.length === 0 && (
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
                       <TableRow>
-                        <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                          Aucune réservation trouvée
-                        </TableCell>
+                        <TableHead>Date</TableHead>
+                        <TableHead>Créneau</TableHead>
+                        <TableHead>Terrain</TableHead>
+                        <TableHead>Client</TableHead>
+                        <TableHead>Statut</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
                       </TableRow>
-                    )}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Hall Reservations */}
-          <TabsContent value="hall">
-            <Card>
-              <CardContent className="pt-6">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Date</TableHead>
-                      <TableHead>Client</TableHead>
-                      <TableHead>Type d'événement</TableHead>
-                      <TableHead>Invités</TableHead>
-                      <TableHead>Statut</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredHallReservations.map((res) => (
-                      <TableRow key={res.id}>
-                        <TableCell>
-                          {format(new Date(res.date), 'dd MMM yyyy', { locale: fr })}
-                        </TableCell>
-                        <TableCell>
-                          <div>
-                            <div className="font-medium">{res.customerName}</div>
-                            <div className="text-sm text-muted-foreground">{res.customerPhone}</div>
-                          </div>
-                        </TableCell>
-                        <TableCell>{res.eventType}</TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-1">
-                            <Users className="w-4 h-4 text-muted-foreground" />
-                            {res.guestCount}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          <Badge className={getStatusColor(res.status)}>
-                            {getStatusLabel(res.status)}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <div className="flex justify-end gap-1">
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => setSelectedHallRes(res)}
-                            >
-                              <Eye className="w-4 h-4" />
-                            </Button>
-                            {res.status === 'pending' && (
-                              <>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="text-green-600"
-                                  onClick={() => handleStatusChange('hall', res.id, 'confirmed')}
-                                >
-                                  <Check className="w-4 h-4" />
-                                </Button>
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="text-destructive"
-                                  onClick={() => handleStatusChange('hall', res.id, 'canceled')}
-                                >
-                                  <X className="w-4 h-4" />
-                                </Button>
-                              </>
-                            )}
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                    {filteredHallReservations.length === 0 && (
-                      <TableRow>
-                        <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                          Aucune réservation trouvée
-                        </TableCell>
-                      </TableRow>
-                    )}
-                  </TableBody>
-                </Table>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Event Reservations */}
-          <TabsContent value="event">
-            <Card>
-              <CardContent className="pt-6">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Événement</TableHead>
-                      <TableHead>Client</TableHead>
-                      <TableHead>Participants</TableHead>
-                      <TableHead>Réservé le</TableHead>
-                      <TableHead>Statut</TableHead>
-                      <TableHead className="text-right">Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredEventReservations.map((res) => {
-                      const event = events.find(e => e.id === res.eventId);
-                      return (
-                        <TableRow key={res.id}>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredFieldReservations.map((res) => (
+                        <TableRow key={res.id || res._id}>
                           <TableCell>
-                            <div>
-                              <div className="font-medium">{event?.title || 'Événement inconnu'}</div>
-                              <div className="text-sm text-muted-foreground">
-                                {event && format(new Date(event.date), 'dd MMM yyyy', { locale: fr })}
-                              </div>
+                            {format(new Date(res.date), 'dd MMM yyyy', { locale: fr })}
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-1">
+                              <Clock className="w-4 h-4 text-muted-foreground" />
+                              {res.timeSlot}
                             </div>
+                          </TableCell>
+                          <TableCell>
+                            {typeof res.field === 'object'
+                              ? res.field.name
+                              : (fields.find(f => (f as any).dbId === res.field)?.name || `Terrain ${res.field}`)}
                           </TableCell>
                           <TableCell>
                             <div>
                               <div className="font-medium">{res.customerName}</div>
                               <div className="text-sm text-muted-foreground">{res.customerPhone}</div>
                             </div>
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-1">
-                              <Users className="w-4 h-4 text-muted-foreground" />
-                              {res.attendees}
-                            </div>
-                          </TableCell>
-                          <TableCell>
-                            {format(new Date(res.createdAt), 'dd/MM/yyyy', { locale: fr })}
                           </TableCell>
                           <TableCell>
                             <Badge className={getStatusColor(res.status)}>
@@ -462,7 +401,7 @@ export default function AdminReservations() {
                               <Button
                                 variant="ghost"
                                 size="icon"
-                                onClick={() => setSelectedEventRes(res)}
+                                onClick={() => setSelectedFieldRes(res)}
                               >
                                 <Eye className="w-4 h-4" />
                               </Button>
@@ -472,7 +411,7 @@ export default function AdminReservations() {
                                     variant="ghost"
                                     size="icon"
                                     className="text-green-600"
-                                    onClick={() => handleStatusChange('event', res.id, 'confirmed')}
+                                    onClick={() => handleStatusChange('field', res.id || res._id || "", 'confirmed')}
                                   >
                                     <Check className="w-4 h-4" />
                                   </Button>
@@ -480,7 +419,7 @@ export default function AdminReservations() {
                                     variant="ghost"
                                     size="icon"
                                     className="text-destructive"
-                                    onClick={() => handleStatusChange('event', res.id, 'canceled')}
+                                    onClick={() => handleStatusChange('field', res.id || res._id || "", 'canceled')}
                                   >
                                     <X className="w-4 h-4" />
                                   </Button>
@@ -489,17 +428,209 @@ export default function AdminReservations() {
                             </div>
                           </TableCell>
                         </TableRow>
-                      );
-                    })}
-                    {filteredEventReservations.length === 0 && (
+                      ))}
+                      {filteredFieldReservations.length === 0 && (
+                        <TableRow>
+                          <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                            Aucune réservation trouvée
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Hall Reservations */}
+          <TabsContent value="hall">
+            <Card>
+              <CardContent className="pt-6">
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
                       <TableRow>
-                        <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                          Aucune réservation trouvée
-                        </TableCell>
+                        <TableHead>Date</TableHead>
+                        <TableHead>Client</TableHead>
+                        <TableHead>Type d'événement</TableHead>
+                        <TableHead>Invités</TableHead>
+                        <TableHead>Statut</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
                       </TableRow>
-                    )}
-                  </TableBody>
-                </Table>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredHallReservations.map((res) => (
+                        <TableRow key={res.id}>
+                          <TableCell>
+                            {format(new Date(res.date), 'dd MMM yyyy', { locale: fr })}
+                          </TableCell>
+                          <TableCell>
+                            <div>
+                              <div className="font-medium">{res.customerName}</div>
+                              <div className="text-sm text-muted-foreground">{res.customerPhone}</div>
+                            </div>
+                          </TableCell>
+                          <TableCell>{res.eventType}</TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-1">
+                              <Users className="w-4 h-4 text-muted-foreground" />
+                              {res.guestCount}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <Badge className={getStatusColor(res.status)}>
+                              {getStatusLabel(res.status)}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <div className="flex justify-end gap-1">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => setSelectedHallRes(res)}
+                              >
+                                <Eye className="w-4 h-4" />
+                              </Button>
+                              {res.status === 'pending' && (
+                                <>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="text-green-600"
+                                    onClick={() => handleStatusChange('hall', res.id, 'confirmed')}
+                                  >
+                                    <Check className="w-4 h-4" />
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="text-destructive"
+                                    onClick={() => handleStatusChange('hall', res.id, 'canceled')}
+                                  >
+                                    <X className="w-4 h-4" />
+                                  </Button>
+                                </>
+                              )}
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="text-destructive"
+                                onClick={() => handleDeleteHallReservation(res.id)}
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                      {filteredHallReservations.length === 0 && (
+                        <TableRow>
+                          <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                            Aucune réservation trouvée
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Event Reservations */}
+          <TabsContent value="event">
+            <Card>
+              <CardContent className="pt-6">
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Événement</TableHead>
+                        <TableHead>Client</TableHead>
+                        <TableHead>Participants</TableHead>
+                        <TableHead>Réservé le</TableHead>
+                        <TableHead>Statut</TableHead>
+                        <TableHead className="text-right">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredEventReservations.map((res) => {
+                        const event = events.find(e => e.id === res.eventId);
+                        return (
+                          <TableRow key={res.id}>
+                            <TableCell>
+                              <div>
+                                <div className="font-medium">{event?.title || 'Événement inconnu'}</div>
+                                <div className="text-sm text-muted-foreground">
+                                  {event && format(new Date(event.date), 'dd MMM yyyy', { locale: fr })}
+                                </div>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <div>
+                                <div className="font-medium">{res.customerName}</div>
+                                <div className="text-sm text-muted-foreground">{res.customerPhone}</div>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex items-center gap-1">
+                                <Users className="w-4 h-4 text-muted-foreground" />
+                                {res.attendees}
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              {format(new Date(res.createdAt), 'dd/MM/yyyy', { locale: fr })}
+                            </TableCell>
+                            <TableCell>
+                              <Badge className={getStatusColor(res.status)}>
+                                {getStatusLabel(res.status)}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <div className="flex justify-end gap-1">
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  onClick={() => setSelectedEventRes(res)}
+                                >
+                                  <Eye className="w-4 h-4" />
+                                </Button>
+                                {res.status === 'pending' && (
+                                  <>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="text-green-600"
+                                      onClick={() => handleStatusChange('event', res.id, 'confirmed')}
+                                    >
+                                      <Check className="w-4 h-4" />
+                                    </Button>
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="text-destructive"
+                                      onClick={() => handleStatusChange('event', res.id, 'canceled')}
+                                    >
+                                      <X className="w-4 h-4" />
+                                    </Button>
+                                  </>
+                                )}
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        );
+                      })}
+                      {filteredEventReservations.length === 0 && (
+                        <TableRow>
+                          <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                            Aucune réservation trouvée
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
@@ -535,7 +666,9 @@ export default function AdminReservations() {
                   <div>
                     <Label className="text-muted-foreground">Terrain</Label>
                     <p className="font-medium">
-                      {fields.find(f => f.id === selectedFieldRes.fieldId)?.name}
+                      {typeof selectedFieldRes.field === 'object'
+                        ? selectedFieldRes.field.name
+                        : (fields.find(f => (f as any).dbId === selectedFieldRes.field)?.name || `Terrain ${selectedFieldRes.field}`)}
                     </p>
                   </div>
                   <div>
@@ -552,12 +685,12 @@ export default function AdminReservations() {
                 <>
                   <Button
                     variant="outline"
-                    onClick={() => handleStatusChange('field', selectedFieldRes.id, 'canceled')}
+                    onClick={() => handleStatusChange('field', selectedFieldRes.id || selectedFieldRes._id || "", 'canceled')}
                   >
                     Annuler
                   </Button>
                   <Button
-                    onClick={() => handleStatusChange('field', selectedFieldRes.id, 'confirmed')}
+                    onClick={() => handleStatusChange('field', selectedFieldRes.id || selectedFieldRes._id || "", 'confirmed')}
                   >
                     Confirmer
                   </Button>
@@ -629,6 +762,13 @@ export default function AdminReservations() {
                   </Button>
                 </>
               )}
+              <Button
+                variant="destructive"
+                onClick={() => handleDeleteHallReservation(selectedHallRes.id)}
+              >
+                <Trash2 className="w-4 h-4 mr-2" />
+                Supprimer
+              </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>

@@ -115,12 +115,12 @@ export default function AdminSettings() {
         </div>
 
         <Tabs defaultValue="park" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-2 lg:grid-cols-5">
-            <TabsTrigger value="park">Parc</TabsTrigger>
-            <TabsTrigger value="hours">Horaires</TabsTrigger>
-            <TabsTrigger value="social">Réseaux</TabsTrigger>
-            <TabsTrigger value="home">Accueil</TabsTrigger>
-            <TabsTrigger value="account">Compte</TabsTrigger>
+          <TabsList className="w-full flex justify-start overflow-x-auto h-auto p-1 bg-muted/50">
+            <TabsTrigger value="park" className="flex-1 sm:flex-none">Parc</TabsTrigger>
+            <TabsTrigger value="hours" className="flex-1 sm:flex-none">Horaires</TabsTrigger>
+            <TabsTrigger value="social" className="flex-1 sm:flex-none">Réseaux</TabsTrigger>
+            <TabsTrigger value="home" className="flex-1 sm:flex-none">Accueil</TabsTrigger>
+            <TabsTrigger value="account" className="flex-1 sm:flex-none">Compte</TabsTrigger>
           </TabsList>
 
           {/* Park Information */}
@@ -141,7 +141,7 @@ export default function AdminSettings() {
                     <Label>Nom du parc</Label>
                     <Input
                       value={parkInfo.name}
-                      onChange={(e) => setParkInfo({...parkInfo, name: e.target.value})}
+                      onChange={(e) => setParkInfo({ ...parkInfo, name: e.target.value })}
                     />
                   </div>
                   <div className="space-y-2">
@@ -151,7 +151,7 @@ export default function AdminSettings() {
                       <Input
                         type="email"
                         value={parkInfo.email}
-                        onChange={(e) => setParkInfo({...parkInfo, email: e.target.value})}
+                        onChange={(e) => setParkInfo({ ...parkInfo, email: e.target.value })}
                         className="pl-10"
                       />
                     </div>
@@ -162,7 +162,7 @@ export default function AdminSettings() {
                       <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                       <Input
                         value={parkInfo.phone}
-                        onChange={(e) => setParkInfo({...parkInfo, phone: e.target.value})}
+                        onChange={(e) => setParkInfo({ ...parkInfo, phone: e.target.value })}
                         className="pl-10"
                       />
                     </div>
@@ -173,7 +173,7 @@ export default function AdminSettings() {
                       <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                       <Input
                         value={parkInfo.whatsapp}
-                        onChange={(e) => setParkInfo({...parkInfo, whatsapp: e.target.value})}
+                        onChange={(e) => setParkInfo({ ...parkInfo, whatsapp: e.target.value })}
                         className="pl-10"
                       />
                     </div>
@@ -184,7 +184,7 @@ export default function AdminSettings() {
                       <MapPin className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
                       <Textarea
                         value={parkInfo.address}
-                        onChange={(e) => setParkInfo({...parkInfo, address: e.target.value})}
+                        onChange={(e) => setParkInfo({ ...parkInfo, address: e.target.value })}
                         className="pl-10"
                         rows={2}
                       />
@@ -194,7 +194,7 @@ export default function AdminSettings() {
                     <Label>Description courte</Label>
                     <Textarea
                       value={parkInfo.description}
-                      onChange={(e) => setParkInfo({...parkInfo, description: e.target.value})}
+                      onChange={(e) => setParkInfo({ ...parkInfo, description: e.target.value })}
                       rows={3}
                     />
                   </div>
@@ -227,7 +227,7 @@ export default function AdminSettings() {
                     <Label>Lundi - Jeudi</Label>
                     <Input
                       value={openingHours.weekdays}
-                      onChange={(e) => setOpeningHours({...openingHours, weekdays: e.target.value})}
+                      onChange={(e) => setOpeningHours({ ...openingHours, weekdays: e.target.value })}
                       placeholder="08:00 - 23:00"
                     />
                   </div>
@@ -235,7 +235,7 @@ export default function AdminSettings() {
                     <Label>Vendredi</Label>
                     <Input
                       value={openingHours.friday}
-                      onChange={(e) => setOpeningHours({...openingHours, friday: e.target.value})}
+                      onChange={(e) => setOpeningHours({ ...openingHours, friday: e.target.value })}
                       placeholder="14:00 - 23:00"
                     />
                   </div>
@@ -243,7 +243,7 @@ export default function AdminSettings() {
                     <Label>Samedi - Dimanche</Label>
                     <Input
                       value={openingHours.weekend}
-                      onChange={(e) => setOpeningHours({...openingHours, weekend: e.target.value})}
+                      onChange={(e) => setOpeningHours({ ...openingHours, weekend: e.target.value })}
                       placeholder="08:00 - 00:00"
                     />
                   </div>
@@ -278,7 +278,7 @@ export default function AdminSettings() {
                       <LinkIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                       <Input
                         value={socialLinks.facebook}
-                        onChange={(e) => setSocialLinks({...socialLinks, facebook: e.target.value})}
+                        onChange={(e) => setSocialLinks({ ...socialLinks, facebook: e.target.value })}
                         className="pl-10"
                         placeholder="https://facebook.com/votrepagp"
                       />
@@ -290,7 +290,7 @@ export default function AdminSettings() {
                       <LinkIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                       <Input
                         value={socialLinks.instagram}
-                        onChange={(e) => setSocialLinks({...socialLinks, instagram: e.target.value})}
+                        onChange={(e) => setSocialLinks({ ...socialLinks, instagram: e.target.value })}
                         className="pl-10"
                         placeholder="https://instagram.com/votrepage"
                       />
@@ -302,7 +302,7 @@ export default function AdminSettings() {
                       <LinkIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                       <Input
                         value={socialLinks.tiktok}
-                        onChange={(e) => setSocialLinks({...socialLinks, tiktok: e.target.value})}
+                        onChange={(e) => setSocialLinks({ ...socialLinks, tiktok: e.target.value })}
                         className="pl-10"
                         placeholder="https://tiktok.com/@votrepage"
                       />
@@ -334,21 +334,21 @@ export default function AdminSettings() {
                     <Label>Titre principal (Hero)</Label>
                     <Input
                       value={homeContent.heroTitle}
-                      onChange={(e) => setHomeContent({...homeContent, heroTitle: e.target.value})}
+                      onChange={(e) => setHomeContent({ ...homeContent, heroTitle: e.target.value })}
                     />
                   </div>
                   <div className="space-y-2">
                     <Label>Sous-titre</Label>
                     <Input
                       value={homeContent.heroSubtitle}
-                      onChange={(e) => setHomeContent({...homeContent, heroSubtitle: e.target.value})}
+                      onChange={(e) => setHomeContent({ ...homeContent, heroSubtitle: e.target.value })}
                     />
                   </div>
                   <div className="space-y-2">
                     <Label>Description</Label>
                     <Textarea
                       value={homeContent.heroDescription}
-                      onChange={(e) => setHomeContent({...homeContent, heroDescription: e.target.value})}
+                      onChange={(e) => setHomeContent({ ...homeContent, heroDescription: e.target.value })}
                       rows={4}
                     />
                   </div>
@@ -410,7 +410,7 @@ export default function AdminSettings() {
                       <Input
                         type="password"
                         value={passwordForm.currentPassword}
-                        onChange={(e) => setPasswordForm({...passwordForm, currentPassword: e.target.value})}
+                        onChange={(e) => setPasswordForm({ ...passwordForm, currentPassword: e.target.value })}
                       />
                     </div>
                     <Separator />
@@ -419,7 +419,7 @@ export default function AdminSettings() {
                       <Input
                         type="password"
                         value={passwordForm.newPassword}
-                        onChange={(e) => setPasswordForm({...passwordForm, newPassword: e.target.value})}
+                        onChange={(e) => setPasswordForm({ ...passwordForm, newPassword: e.target.value })}
                       />
                     </div>
                     <div className="space-y-2">
@@ -427,7 +427,7 @@ export default function AdminSettings() {
                       <Input
                         type="password"
                         value={passwordForm.confirmPassword}
-                        onChange={(e) => setPasswordForm({...passwordForm, confirmPassword: e.target.value})}
+                        onChange={(e) => setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })}
                       />
                     </div>
                   </div>

@@ -5,9 +5,15 @@ import { Button } from "@/components/ui/button";
 import { format, addDays, startOfWeek, isSameDay, isToday, isBefore } from "date-fns";
 import { fr } from "date-fns/locale";
 import { PublicLayout } from "@/components/layout/PublicLayout";
-import { fields, timeSlots, fieldReservations } from "@/data/mockData";
+import { reservationApi, FieldReservation } from "@/lib/api/reservation";
 import terrainImg from "@/assets/terrain-foot.jpg";
 import { useToast } from "@/hooks/use-toast";
+import { useEffect } from "react";
+
+const initialFields = [
+  { id: 1, name: "Terrain 1", dbId: "" },
+  { id: 2, name: "Terrain 2", dbId: "" },
+];
 
 export default function Fields() {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
@@ -15,16 +21,56 @@ export default function Fields() {
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
   const [weekStart, setWeekStart] = useState(startOfWeek(new Date(), { weekStartsOn: 1 }));
   const [showForm, setShowForm] = useState(false);
+  const [existingReservations, setExistingReservations] = useState<FieldReservation[]>([]);
+  const [fields, setFields] = useState(initialFields);
   const [formData, setFormData] = useState({ name: "", phone: "" });
   const { toast } = useToast();
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const fetchData = async () => {
+    try {
+      const [reservationsData, fieldsData] = await Promise.all([
+        reservationApi.getAllFieldReservations(),
+        reservationApi.getFields()
+      ]);
+      setExistingReservations(reservationsData);
+
+      // Map DB IDs to our local fields array
+      if (fieldsData.length > 0) {
+        setFields(prev => prev.map(f => {
+          const dbField = fieldsData.find(df => df.name === f.name);
+          return dbField ? { ...f, dbId: dbField._id } : f;
+        }));
+      }
+    } catch (error) {
+      console.error("Failed to fetch data:", error);
+    }
+  };
+
+  const fetchReservations = async () => {
+    try {
+      const data = await reservationApi.getAllFieldReservations();
+      setExistingReservations(data);
+    } catch (error) {
+      console.error("Failed to fetch field reservations:", error);
+    }
+  };
 
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
 
   const isSlotBooked = (date: Date, terrainId: number, slot: string) => {
     const dateStr = format(date, "yyyy-MM-dd");
-    return fieldReservations.some(
-      r => r.date === dateStr && r.fieldId === terrainId && r.timeSlot === slot && r.status !== 'canceled'
-    );
+    return existingReservations.some(r => {
+      const resDate = format(new Date(r.date), "yyyy-MM-dd");
+      // Match by terrain number (id) for now, or refine if needed
+      const fieldMatch = typeof r.field === 'object'
+        ? r.field.name.includes(terrainId.toString())
+        : true; // Default to true if not populated yet
+      return resDate === dateStr && r.timeSlot === slot && r.status !== 'canceled';
+    });
   };
 
   const isSlotPast = (date: Date, slot: string) => {
@@ -34,15 +80,35 @@ export default function Fields() {
     return hours <= now.getHours();
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    toast({
-      title: "Réservation envoyée !",
-      description: "Nous vous contacterons pour confirmer votre réservation.",
-    });
-    setShowForm(false);
-    setSelectedSlot(null);
-    setFormData({ name: "", phone: "" });
+    try {
+      const selectedFieldObj = fields.find(f => f.id === selectedTerrain);
+      const fieldId = selectedFieldObj?.dbId || selectedTerrain.toString();
+
+      await reservationApi.createFieldReservation({
+        field: fieldId,
+        date: selectedDate.toISOString(),
+        timeSlot: selectedSlot || "",
+        customerName: formData.name,
+        customerPhone: formData.phone,
+      });
+
+      toast({
+        title: "Réservation réussie !",
+        description: "Votre demande a été enregistrée. Nous vous contacterons bientôt.",
+      });
+      setShowForm(false);
+      setSelectedSlot(null);
+      setFormData({ name: "", phone: "" });
+      fetchReservations();
+    } catch (error) {
+      toast({
+        title: "Erreur",
+        description: "Une erreur est survenue. Veuillez réessayer.",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
@@ -135,11 +201,10 @@ export default function Fields() {
                         setSelectedTerrain(terrain.id);
                         setSelectedSlot(null);
                       }}
-                      className={`flex-1 p-4 rounded-xl border-2 transition-all ${
-                        selectedTerrain === terrain.id
-                          ? "border-primary bg-primary/5"
-                          : "border-border hover:border-primary/50"
-                      }`}
+                      className={`flex-1 p-4 rounded-xl border-2 transition-all ${selectedTerrain === terrain.id
+                        ? "border-primary bg-primary/5"
+                        : "border-border hover:border-primary/50"
+                        }`}
                     >
                       <MapPin className={`w-5 h-5 mb-2 ${selectedTerrain === terrain.id ? 'text-primary' : 'text-muted-foreground'}`} />
                       <p className={`font-medium ${selectedTerrain === terrain.id ? 'text-primary' : 'text-foreground'}`}>
@@ -184,13 +249,12 @@ export default function Fields() {
                         setSelectedSlot(null);
                       }}
                       disabled={isBefore(day, new Date()) && !isToday(day)}
-                      className={`p-2 sm:p-3 rounded-lg sm:rounded-xl text-center transition-all ${
-                        isSameDay(day, selectedDate)
-                          ? "bg-primary text-primary-foreground"
-                          : isBefore(day, new Date()) && !isToday(day)
+                      className={`p-2 sm:p-3 rounded-lg sm:rounded-xl text-center transition-all ${isSameDay(day, selectedDate)
+                        ? "bg-primary text-primary-foreground"
+                        : isBefore(day, new Date()) && !isToday(day)
                           ? "bg-muted text-muted-foreground cursor-not-allowed"
                           : "bg-muted/50 hover:bg-muted text-foreground"
-                      }`}
+                        }`}
                     >
                       <p className="text-[10px] sm:text-xs uppercase opacity-70">
                         {format(day, "EEE", { locale: fr })}
@@ -209,27 +273,30 @@ export default function Fields() {
                     </h4>
                   </div>
                   <div className="grid grid-cols-3 gap-2 sm:gap-3 sm:grid-cols-4 md:grid-cols-6">
-                    {timeSlots.map((slot) => {
-                      const booked = isSlotBooked(selectedDate, selectedTerrain, slot.time);
-                      const past = isSlotPast(selectedDate, slot.time);
+                    {/* timeSlots is missing, need to import or define locally */}
+                    {[
+                      "06:00", "07:30", "09:00", "10:30", "12:00", "13:30",
+                      "15:00", "16:30", "18:00", "19:30", "21:00", "22:30"
+                    ].map((slot) => {
+                      const booked = isSlotBooked(selectedDate, selectedTerrain, slot);
+                      const past = isSlotPast(selectedDate, slot);
                       const disabled = booked || past;
 
                       return (
                         <button
-                          key={slot.id}
-                          onClick={() => !disabled && setSelectedSlot(slot.time)}
+                          key={slot}
+                          onClick={() => !disabled && setSelectedSlot(slot)}
                           disabled={disabled}
-                          className={`p-3 rounded-xl text-center font-medium transition-all ${
-                            selectedSlot === slot.time
-                              ? "bg-primary text-primary-foreground shadow-lg"
-                              : booked
+                          className={`p-3 rounded-xl text-center font-medium transition-all ${selectedSlot === slot
+                            ? "bg-primary text-primary-foreground shadow-lg"
+                            : booked
                               ? "bg-destructive/10 text-destructive line-through cursor-not-allowed"
                               : past
-                              ? "bg-muted text-muted-foreground cursor-not-allowed"
-                              : "bg-muted/50 hover:bg-primary/10 text-foreground hover:text-primary"
-                          }`}
+                                ? "bg-muted text-muted-foreground cursor-not-allowed"
+                                : "bg-muted/50 hover:bg-primary/10 text-foreground hover:text-primary"
+                            }`}
                         >
-                          {slot.time}
+                          {slot}
                         </button>
                       );
                     })}

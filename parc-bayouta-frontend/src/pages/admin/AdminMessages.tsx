@@ -5,13 +5,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow
 } from "@/components/ui/table";
 import {
   Dialog,
@@ -30,11 +30,11 @@ import {
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { 
-  contactMessages, 
-  getStatusColor, 
+import {
+  contactMessages,
+  getStatusColor,
   getStatusLabel,
-  ContactMessage 
+  ContactMessage
 } from "@/data/mockData";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -48,7 +48,7 @@ export default function AdminMessages() {
 
   // Filter messages
   const filteredMessages = contactMessages.filter(msg => {
-    const matchesSearch = 
+    const matchesSearch =
       msg.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       msg.subject.toLowerCase().includes(searchQuery.toLowerCase()) ||
       msg.message.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -172,101 +172,103 @@ export default function AdminMessages() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Date</TableHead>
-                  <TableHead>Expéditeur</TableHead>
-                  <TableHead>Sujet</TableHead>
-                  <TableHead>Message</TableHead>
-                  <TableHead>Statut</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredMessages.map((message) => (
-                  <TableRow key={message.id} className={message.status === 'new' ? 'bg-blue-50/50' : ''}>
-                    <TableCell>
-                      {format(new Date(message.createdAt), 'dd/MM/yyyy', { locale: fr })}
-                      <div className="text-xs text-muted-foreground">
-                        {format(new Date(message.createdAt), 'HH:mm')}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div>
-                        <div className="font-medium">{message.name}</div>
-                        <div className="text-sm text-muted-foreground flex items-center gap-1">
-                          <Phone className="w-3 h-3" />
-                          {message.phone}
-                        </div>
-                        {message.email && (
-                          <div className="text-sm text-muted-foreground flex items-center gap-1">
-                            <Mail className="w-3 h-3" />
-                            {message.email}
-                          </div>
-                        )}
-                      </div>
-                    </TableCell>
-                    <TableCell className="font-medium">{message.subject}</TableCell>
-                    <TableCell>
-                      <p className="text-sm text-muted-foreground truncate max-w-xs">
-                        {message.message}
-                      </p>
-                    </TableCell>
-                    <TableCell>
-                      <Badge className={getStatusColor(message.status)}>
-                        {getStatusLabel(message.status)}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-1">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => setSelectedMessage(message)}
-                        >
-                          <Eye className="w-4 h-4" />
-                        </Button>
-                        {message.status === 'new' && (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="text-green-600 hover:text-green-700"
-                            onClick={() => handleStatusChange(message.id, 'processed')}
-                          >
-                            <Check className="w-4 h-4" />
-                          </Button>
-                        )}
-                        {message.status !== 'archived' && (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleStatusChange(message.id, 'archived')}
-                          >
-                            <Archive className="w-4 h-4" />
-                          </Button>
-                        )}
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="text-destructive hover:text-destructive"
-                          onClick={() => setDeleteMessageId(message.id)}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-                {filteredMessages.length === 0 && (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                      Aucun message trouvé
-                    </TableCell>
+                    <TableHead>Date</TableHead>
+                    <TableHead>Expéditeur</TableHead>
+                    <TableHead>Sujet</TableHead>
+                    <TableHead>Message</TableHead>
+                    <TableHead>Statut</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
-                )}
-              </TableBody>
-            </Table>
+                </TableHeader>
+                <TableBody>
+                  {filteredMessages.map((message) => (
+                    <TableRow key={message.id} className={message.status === 'new' ? 'bg-blue-50/50' : ''}>
+                      <TableCell className="whitespace-nowrap">
+                        {format(new Date(message.createdAt), 'dd/MM/yyyy', { locale: fr })}
+                        <div className="text-xs text-muted-foreground">
+                          {format(new Date(message.createdAt), 'HH:mm')}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="min-w-[150px]">
+                          <div className="font-medium">{message.name}</div>
+                          <div className="text-sm text-muted-foreground flex items-center gap-1">
+                            <Phone className="w-3 h-3" />
+                            {message.phone}
+                          </div>
+                          {message.email && (
+                            <div className="text-sm text-muted-foreground flex items-center gap-1">
+                              <Mail className="w-3 h-3" />
+                              {message.email}
+                            </div>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell className="font-medium italic min-w-[120px]">{message.subject}</TableCell>
+                      <TableCell>
+                        <p className="text-sm text-muted-foreground truncate max-w-[200px]">
+                          {message.message}
+                        </p>
+                      </TableCell>
+                      <TableCell>
+                        <Badge className={getStatusColor(message.status)}>
+                          {getStatusLabel(message.status)}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-1">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => setSelectedMessage(message)}
+                          >
+                            <Eye className="w-4 h-4" />
+                          </Button>
+                          {message.status === 'new' && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="text-green-600 hover:text-green-700"
+                              onClick={() => handleStatusChange(message.id, 'processed')}
+                            >
+                              <Check className="w-4 h-4" />
+                            </Button>
+                          )}
+                          {message.status !== 'archived' && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => handleStatusChange(message.id, 'archived')}
+                            >
+                              <Archive className="w-4 h-4" />
+                            </Button>
+                          )}
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="text-destructive hover:text-destructive"
+                            onClick={() => setDeleteMessageId(message.id)}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                  {filteredMessages.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                        Aucun message trouvé
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </div>
           </CardContent>
         </Card>
 

@@ -1,9 +1,10 @@
 const express = require('express');
+const hallReservationRoute = require('./hallReservation.route');
+const fieldReservationRoute = require('./fieldReservation.route');
 const router = express.Router();
 
-// Defined routes will be mounted here
-// const authRoute = require('./auth.route');
-// router.use('/auth', authRoute);
+router.use('/hall-reservations', hallReservationRoute);
+router.use('/field-reservations', fieldReservationRoute);
 
 router.get('/health', (req, res) => {
     res.send('OK');

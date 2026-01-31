@@ -334,7 +334,7 @@ export const getCategoryColor = (category: Event['category']): string => {
   return colors[category];
 };
 
-export const getStatusColor = (status: 'pending' | 'confirmed' | 'canceled' | 'new' | 'processed' | 'archived'): string => {
+export const getStatusColor = (status: 'pending' | 'confirmed' | 'canceled' | 'new' | 'processed' | 'archived' | 'blocked'): string => {
   const colors: Record<string, string> = {
     pending: 'bg-yellow-500/10 text-yellow-600',
     confirmed: 'bg-green-500/10 text-green-600',
@@ -342,11 +342,12 @@ export const getStatusColor = (status: 'pending' | 'confirmed' | 'canceled' | 'n
     new: 'bg-blue-500/10 text-blue-600',
     processed: 'bg-green-500/10 text-green-600',
     archived: 'bg-gray-500/10 text-gray-600',
+    blocked: 'bg-destructive/10 text-destructive',
   };
   return colors[status];
 };
 
-export const getStatusLabel = (status: 'pending' | 'confirmed' | 'canceled' | 'new' | 'processed' | 'archived'): string => {
+export const getStatusLabel = (status: 'pending' | 'confirmed' | 'canceled' | 'new' | 'processed' | 'archived' | 'blocked'): string => {
   const labels: Record<string, string> = {
     pending: 'En attente',
     confirmed: 'Confirmé',
@@ -354,6 +355,7 @@ export const getStatusLabel = (status: 'pending' | 'confirmed' | 'canceled' | 'n
     new: 'Nouveau',
     processed: 'Traité',
     archived: 'Archivé',
+    blocked: 'Bloqué',
   };
   return labels[status];
 };

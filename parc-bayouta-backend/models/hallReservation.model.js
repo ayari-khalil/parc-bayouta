@@ -4,12 +4,12 @@ const { toJSON, paginate } = require('./plugins');
 const hallReservationSchema = mongoose.Schema(
     {
         date: { type: Date, required: true },
-        customerName: { type: String, required: true },
-        customerPhone: { type: String, required: true },
-        eventType: { type: String, required: true },
-        guestCount: { type: Number, required: true },
+        customerName: { type: String, required: function () { return this.status !== 'blocked'; } },
+        customerPhone: { type: String, required: function () { return this.status !== 'blocked'; } },
+        eventType: { type: String, required: function () { return this.status !== 'blocked'; } },
+        guestCount: { type: Number, required: function () { return this.status !== 'blocked'; } },
         message: { type: String },
-        status: { type: String, enum: ['pending', 'confirmed', 'canceled'], default: 'pending' },
+        status: { type: String, enum: ['pending', 'confirmed', 'canceled', 'blocked'], default: 'pending' },
     },
     { timestamps: true }
 );

@@ -1,16 +1,9 @@
-const dotenv = require('dotenv');
-const path = require('path');
-
-dotenv.config({ path: path.join(__dirname, '../../.env') });
+require('dotenv').config();
 
 module.exports = {
-    env: process.env.NODE_ENV,
     port: process.env.PORT || 5000,
     mongoose: {
-        url: process.env.MONGODB_URL + (process.env.NODE_ENV === 'test' ? '-test' : ''),
-        options: {
-            useNewUrlParser: true,
-            useUnifiedTopology: true,
-        },
-    },
+        url: process.env.MONGODB_URL,
+        options: {}
+    }
 };

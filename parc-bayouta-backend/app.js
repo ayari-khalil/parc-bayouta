@@ -31,6 +31,10 @@ app.use((req, res, next) => {
 
 // Generic error handler
 app.use((err, req, res, next) => {
+    console.error('Error occurred:');
+    console.error('Message:', err.message);
+    console.error('Stack:', err.stack);
+
     const status = err.status || 500;
     const message = err.message || 'Internal Server Error';
     res.status(status).send({ message });

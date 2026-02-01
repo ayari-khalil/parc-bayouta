@@ -1,9 +1,10 @@
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
-import { Coffee, UtensilsCrossed, Cake, IceCream, Wine, Download, Phone } from "lucide-react";
+import { Coffee, UtensilsCrossed, Cake, IceCream, Wine, Download, Phone, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PublicLayout } from "@/components/layout/PublicLayout";
-import { menuCategories, menuItems } from "@/data/mockData";
+import * as menuApi from "@/api/menuApi";
 import cafeImg from "@/assets/cafe-restaurant.jpg";
 
 const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
@@ -17,11 +18,37 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
 export default function CafeRestaurant() {
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
 
-  const filteredItems = activeCategory 
-    ? menuItems.filter(item => item.categoryId === activeCategory && item.isActive)
-    : menuItems.filter(item => item.isActive);
+  // Fetch categories and menu items
+  const { data: categories = [], isLoading: categoriesLoading } = useQuery({
+    queryKey: ['publicCategories'],
+    queryFn: menuApi.getCategories
+  });
 
-  const activeCategories = menuCategories.filter(c => c.isActive).sort((a, b) => a.order - b.order);
+  const { data: allMenuItems = [], isLoading: itemsLoading } = useQuery({
+    queryKey: ['publicMenuItems'],
+    queryFn: () => menuApi.getPublicMenuItems()
+  });
+
+  // Filter active categories and items
+  const activeCategories = categories.filter(c => c.isActive).sort((a, b) => a.order - b.order);
+
+  const filteredItems = activeCategory
+    ? allMenuItems.filter(item => {
+      const categoryId = typeof item.category === 'object' ? item.category.id : item.category;
+      return categoryId === activeCategory;
+    })
+    : allMenuItems;
+
+  // Loading state
+  if (categoriesLoading || itemsLoading) {
+    return (
+      <PublicLayout>
+        <div className="flex items-center justify-center h-64 mt-32">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        </div>
+      </PublicLayout>
+    );
+  }
 
   return (
     <PublicLayout>
@@ -109,8 +136,12 @@ export default function CafeRestaurant() {
               // Show categories with items
               activeCategories.map((category, index) => {
                 const Icon = iconMap[category.icon] || Coffee;
-                const items = menuItems.filter(item => item.categoryId === category.id && item.isActive);
-                
+                const categoryId = category.id;
+                const items = allMenuItems.filter(item => {
+                  const itemCatId = typeof item.category === 'object' ? item.category.id : item.category;
+                  return itemCatId === categoryId;
+                });
+
                 return (
                   <motion.div
                     key={category.id}
@@ -135,7 +166,7 @@ export default function CafeRestaurant() {
                           className="flex items-center justify-between text-sm"
                         >
                           <span className="text-foreground">{item.name}</span>
-                          <span className="font-medium text-accent">{item.price} DA</span>
+                          <span className="font-medium text-accent">{item.price} DT</span>
                         </li>
                       ))}
                     </ul>
@@ -161,7 +192,7 @@ export default function CafeRestaurant() {
                         )}
                       </div>
                       <span className="font-bold text-accent whitespace-nowrap ml-4">
-                        {item.price} DA
+                        {item.price} DT
                       </span>
                     </motion.div>
                   ))}

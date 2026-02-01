@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Search, Calendar, Users, Clock, Check, X, Eye, Download, Filter, Trash2 } from "lucide-react";
+import { Search, Calendar, Users, Clock, Check, X, Eye, Download, Filter, Trash2, Repeat } from "lucide-react";
 import { AdminLayout } from "@/components/layout/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -82,7 +82,7 @@ export default function AdminReservations() {
       if (fieldsData.length > 0) {
         setFields(prev => prev.map(f => {
           const dbField = fieldsData.find(df => df.name === f.name);
-          return dbField ? { ...f, dbId: dbField._id } : f;
+          return dbField ? { ...f, dbId: dbField.id || (dbField as any)._id } : f;
         }));
       }
       fetchHallReservations();
@@ -395,6 +395,9 @@ export default function AdminReservations() {
                             <Badge className={getStatusColor(res.status)}>
                               {getStatusLabel(res.status)}
                             </Badge>
+                            {res.isRecurring && (
+                              <Repeat className="w-3 h-3 ml-1 text-primary inline" />
+                            )}
                           </TableCell>
                           <TableCell className="text-right">
                             <div className="flex justify-end gap-1">
@@ -482,6 +485,9 @@ export default function AdminReservations() {
                             <Badge className={getStatusColor(res.status)}>
                               {getStatusLabel(res.status)}
                             </Badge>
+                            {res.isRecurring && (
+                              <Repeat className="w-3 h-3 ml-1 text-primary inline" />
+                            )}
                           </TableCell>
                           <TableCell className="text-right">
                             <div className="flex justify-end gap-1">

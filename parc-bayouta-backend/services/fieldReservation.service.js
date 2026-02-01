@@ -14,7 +14,40 @@ const getFields = async () => {
  * @returns {Promise<FieldReservation>}
  */
 const createReservation = async (reservationBody) => {
-    return FieldReservation.create(reservationBody);
+    if (!reservationBody.isRecurring) {
+        return FieldReservation.create(reservationBody);
+    }
+
+    const reservations = [];
+    const recurringGroupId = `rec_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    const baseDate = new Date(reservationBody.date);
+
+    // Create 4 weekly reservations
+    for (let i = 0; i < 4; i++) {
+        const currentDate = new Date(baseDate);
+        currentDate.setDate(baseDate.getDate() + (i * 7));
+
+        // Check if slot is already taken
+        const existingRec = await FieldReservation.findOne({
+            field: reservationBody.field,
+            date: currentDate,
+            timeSlot: reservationBody.timeSlot,
+            status: { $ne: 'canceled' }
+        });
+
+        if (existingRec) {
+            throw new Error(`Le créneau du ${currentDate.toLocaleDateString()} est déjà réservé.`);
+        }
+
+        reservations.push({
+            ...reservationBody,
+            date: currentDate,
+            isRecurring: true,
+            recurringGroupId
+        });
+    }
+
+    return FieldReservation.insertMany(reservations);
 };
 
 /**

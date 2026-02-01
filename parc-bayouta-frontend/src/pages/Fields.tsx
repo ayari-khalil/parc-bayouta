@@ -24,6 +24,7 @@ export default function Fields() {
   const [existingReservations, setExistingReservations] = useState<FieldReservation[]>([]);
   const [fields, setFields] = useState(initialFields);
   const [formData, setFormData] = useState({ name: "", phone: "" });
+  const [isRecurring, setIsRecurring] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -42,7 +43,7 @@ export default function Fields() {
       if (fieldsData.length > 0) {
         setFields(prev => prev.map(f => {
           const dbField = fieldsData.find(df => df.name === f.name);
-          return dbField ? { ...f, dbId: dbField._id } : f;
+          return dbField ? { ...f, dbId: dbField.id } : f;
         }));
       }
     } catch (error) {
@@ -63,13 +64,21 @@ export default function Fields() {
 
   const isSlotBooked = (date: Date, terrainId: number, slot: string) => {
     const dateStr = format(date, "yyyy-MM-dd");
+    const selectedFieldObj = fields.find(f => f.id === terrainId);
+    const targetDbId = selectedFieldObj?.dbId;
+
     return existingReservations.some(r => {
       const resDate = format(new Date(r.date), "yyyy-MM-dd");
-      // Match by terrain number (id) for now, or refine if needed
-      const fieldMatch = typeof r.field === 'object'
-        ? r.field.name.includes(terrainId.toString())
-        : true; // Default to true if not populated yet
-      return resDate === dateStr && r.timeSlot === slot && r.status !== 'canceled';
+
+      let fieldMatch = false;
+      if (typeof r.field === 'object') {
+        fieldMatch = r.field.name.includes(terrainId.toString());
+      } else {
+        // Match by database ID if available, otherwise fallback to index-based string
+        fieldMatch = targetDbId ? r.field === targetDbId : r.field === terrainId.toString();
+      }
+
+      return resDate === dateStr && r.timeSlot === slot && r.status !== 'canceled' && fieldMatch;
     });
   };
 
@@ -92,6 +101,7 @@ export default function Fields() {
         timeSlot: selectedSlot || "",
         customerName: formData.name,
         customerPhone: formData.phone,
+        isRecurring: isRecurring,
       });
 
       toast({
@@ -101,6 +111,7 @@ export default function Fields() {
       setShowForm(false);
       setSelectedSlot(null);
       setFormData({ name: "", phone: "" });
+      setIsRecurring(false);
       fetchReservations();
     } catch (error) {
       toast({
@@ -177,7 +188,7 @@ export default function Fields() {
                     <p className="text-3xl font-display font-bold text-primary">
                       3 000 DA
                       <span className="text-sm font-body font-normal text-muted-foreground">
-                        {" "}/ 1h30
+                        {" "}/ 1h15
                       </span>
                     </p>
                   </div>
@@ -275,8 +286,9 @@ export default function Fields() {
                   <div className="grid grid-cols-3 gap-2 sm:gap-3 sm:grid-cols-4 md:grid-cols-6">
                     {/* timeSlots is missing, need to import or define locally */}
                     {[
-                      "06:00", "07:30", "09:00", "10:30", "12:00", "13:30",
-                      "15:00", "16:30", "18:00", "19:30", "21:00", "22:30"
+                      // 
+                      "09:45", "11:00", "12:15", "13:30",
+                      "14:45", "16:00", "17:15", "18:30", "19:45", "21:00", "22:15"
                     ].map((slot) => {
                       const booked = isSlotBooked(selectedDate, selectedTerrain, slot);
                       const past = isSlotPast(selectedDate, slot);
@@ -386,6 +398,18 @@ export default function Fields() {
                   onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                 />
               </div>
+              <div className="flex items-center gap-2 py-2">
+                <input
+                  type="checkbox"
+                  id="recurring"
+                  className="w-4 h-4 rounded border-border text-primary focus:ring-primary"
+                  checked={isRecurring}
+                  onChange={(e) => setIsRecurring(e.target.checked)}
+                />
+                <label htmlFor="recurring" className="text-sm font-medium text-foreground cursor-pointer">
+                  Réservation hebdomadaire (pendant 4 semaines)
+                </label>
+              </div>
               <div className="p-4 bg-muted rounded-xl">
                 <p className="text-sm text-muted-foreground">Récapitulatif</p>
                 <p className="font-medium text-foreground">
@@ -397,7 +421,7 @@ export default function Fields() {
                 <p className="text-primary font-bold mt-2">3 000 DA</p>
               </div>
               <div className="flex gap-3">
-                <Button type="button" variant="outline" className="flex-1" onClick={() => setShowForm(false)}>
+                <Button type="button" variant="outline" className="flex-1" onClick={() => { setShowForm(false); setIsRecurring(false); }}>
                   Annuler
                 </Button>
                 <Button type="submit" variant="hero" className="flex-1">

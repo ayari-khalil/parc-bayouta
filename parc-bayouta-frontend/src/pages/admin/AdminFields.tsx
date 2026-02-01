@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Calendar, Search, Filter, Plus, Edit, Trash2, Eye, Ban, Check, X, Clock } from "lucide-react";
+import { Calendar, Search, Filter, Plus, Edit, Trash2, Eye, Ban, Check, X, Clock, Repeat } from "lucide-react";
 import { AdminLayout } from "@/components/layout/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -41,10 +41,11 @@ const initialFields = [
 ];
 
 const timeSlots = [
-  { id: "1", time: "06:00" }, { id: "2", time: "07:30" }, { id: "3", time: "09:00" },
-  { id: "4", time: "10:30" }, { id: "5", time: "12:00" }, { id: "6", time: "13:30" },
-  { id: "7", time: "15:00" }, { id: "8", time: "16:30" }, { id: "9", time: "18:00" },
-  { id: "10", time: "19:30" }, { id: "11", time: "21:00" }, { id: "12", time: "22:30" },
+  // { id: "1", time: "06:00" }, { id: "2", time: "07:15" }, { id: "3", time: "08:30" },
+  { id: "4", time: "09:45" }, { id: "5", time: "11:00" }, { id: "6", time: "12:15" },
+  { id: "7", time: "13:30" }, { id: "8", time: "14:45" }, { id: "9", time: "16:00" },
+  { id: "10", time: "17:15" }, { id: "11", time: "18:30" }, { id: "12", time: "19:45" },
+  { id: "13", time: "21:00" }, { id: "14", time: "22:15" },
 ];
 
 const getStatusColor = (status: string) => {
@@ -78,6 +79,15 @@ export default function AdminFields() {
   const [showBlockDialog, setShowBlockDialog] = useState(false);
   const [blockData, setBlockData] = useState({ fieldId: "1", date: "", timeSlot: "", reason: "" });
   const [allReservations, setAllReservations] = useState<FieldReservation[]>([]);
+  const [showAddDialog, setShowAddDialog] = useState(false);
+  const [addData, setAddData] = useState({
+    fieldId: 1,
+    date: "",
+    timeSlot: "",
+    customerName: "",
+    customerPhone: "",
+    isRecurring: false
+  });
   const [fields, setFields] = useState(initialFields);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -97,7 +107,7 @@ export default function AdminFields() {
       if (fieldsData.length > 0) {
         setFields(prev => prev.map(f => {
           const dbField = fieldsData.find(df => df.name === f.name);
-          return dbField ? { ...f, dbId: dbField._id } : f;
+          return dbField ? { ...f, dbId: dbField.id || (dbField as any)._id } : f;
         }));
       }
     } catch (error) {
@@ -127,11 +137,15 @@ export default function AdminFields() {
       res.customerPhone.includes(searchQuery);
     const matchesStatus = statusFilter === "all" || res.status === statusFilter;
 
-    const fieldIdStr = typeof res.field === 'object'
-      ? res.field.name.includes("1") ? "1" : "2"
-      : res.field.toString();
+    const resFieldId = typeof res.field === 'object'
+      ? (res.field as any).id || (res.field as any)._id
+      : res.field;
+    const targetField = fields.find(f => f.id.toString() === fieldFilter);
+    let matchesField = fieldFilter === "all" || resFieldId === targetField?.dbId || resFieldId === targetField?.id.toString();
+    if (!matchesField && fieldFilter !== "all" && typeof res.field === 'object' && targetField) {
+      matchesField = res.field.name === targetField.name;
+    }
 
-    const matchesField = fieldFilter === "all" || fieldIdStr === fieldFilter;
     return matchesSearch && matchesStatus && matchesField;
   });
 
@@ -162,14 +176,80 @@ export default function AdminFields() {
     setBlockData({ fieldId: "1", date: "", timeSlot: "", reason: "" });
   };
 
+  const handleCreateReservation = async () => {
+    try {
+      const fieldIdNum = Number(addData.fieldId);
+      const selectedFieldObj = fields.find(f => f.id === fieldIdNum);
+      const targetDbId = selectedFieldObj?.dbId;
+
+      if (!targetDbId) {
+        toast({
+          title: "Erreur",
+          description: "Impossible de trouver l'ID du terrain.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      await reservationApi.createFieldReservation({
+        field: targetDbId,
+        date: addData.date,
+        timeSlot: addData.timeSlot,
+        customerName: addData.customerName,
+        customerPhone: addData.customerPhone,
+        isRecurring: addData.isRecurring,
+      });
+
+      toast({
+        title: "Réservation créée",
+        description: "La réservation a été ajoutée avec succès.",
+      });
+      setShowAddDialog(false);
+      setAddData({
+        fieldId: 1,
+        date: "",
+        timeSlot: "",
+        customerName: "",
+        customerPhone: "",
+        isRecurring: false
+      });
+      fetchReservations();
+    } catch (error: any) {
+      toast({
+        title: "Erreur",
+        description: error.message || "Une erreur est survenue lors de la création.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const openAddDialog = (fieldId: number, date: Date, timeSlot: string) => {
+    setAddData({
+      fieldId,
+      date: format(date, 'yyyy-MM-dd'),
+      timeSlot,
+      customerName: "",
+      customerPhone: "",
+      isRecurring: false
+    });
+    setShowAddDialog(true);
+  };
+
   const getReservationForSlot = (fieldId: number, date: Date, time: string) => {
     const dateStr = format(date, 'yyyy-MM-dd');
+    const targetField = fields.find(f => f.id === fieldId);
     return allReservations.find(res => {
       const resDate = format(new Date(res.date), 'yyyy-MM-dd');
-      const fieldIdMatch = typeof res.field === 'object'
-        ? res.field.name.includes(fieldId.toString())
-        : res.field.toString() === fieldId.toString();
-      return fieldIdMatch && resDate === dateStr && res.timeSlot === time;
+      const resFieldId = typeof res.field === 'object'
+        ? (res.field as any).id || (res.field as any)._id
+        : res.field;
+
+      let fieldMatch = resFieldId === targetField?.dbId || resFieldId === targetField?.id.toString();
+      if (!fieldMatch && typeof res.field === 'object' && targetField) {
+        fieldMatch = res.field.name === targetField.name;
+      }
+
+      return fieldMatch && resDate === dateStr && res.timeSlot === time;
     });
   };
 
@@ -341,6 +421,9 @@ export default function AdminFields() {
                             <Badge className={getStatusColor(reservation.status)}>
                               {getStatusLabel(reservation.status)}
                             </Badge>
+                            {reservation.isRecurring && (
+                              <Repeat className="w-3 h-3 ml-1 text-primary inline" />
+                            )}
                           </TableCell>
                           <TableCell className="text-right">
                             <div className="flex justify-end gap-1">
@@ -456,12 +539,20 @@ export default function AdminFields() {
                                           : res.status === 'pending'
                                             ? 'bg-yellow-100 text-yellow-800 hover:bg-yellow-200'
                                             : 'bg-red-100 text-red-800'
-                                        : 'bg-muted/30 hover:bg-muted text-muted-foreground'
+                                        : 'bg-muted/30 hover:bg-muted text-muted-foreground border border-dashed border-muted-foreground/30'
                                         }`}
-                                      onClick={() => res && setSelectedReservation(res)}
+                                      onClick={() => res ? setSelectedReservation(res) : openAddDialog(fieldId, date, slot.time)}
                                     >
-                                      <div className="font-medium">T{fieldId}</div>
-                                      {res && <div className="truncate">{res.customerName}</div>}
+                                      <div className="font-medium flex items-center gap-1">
+                                        T{fieldId}
+                                        {res && res.isRecurring && <Repeat className="w-3 h-3 text-primary" />}
+                                        {!res && <Plus className="w-2 h-2 ml-auto opacity-50" />}
+                                      </div>
+                                      {res ? (
+                                        <div className="truncate">{res.customerName}</div>
+                                      ) : (
+                                        <div className="text-[10px] opacity-40">Libre</div>
+                                      )}
                                     </div>
                                   );
                                 })}
@@ -544,6 +635,73 @@ export default function AdminFields() {
                   </Button>
                 </>
               )}
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Add Reservation Dialog */}
+        <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Nouvelle Réservation</DialogTitle>
+              <DialogDescription>
+                Ajouter une réservation manuellement pour un client
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-2">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Terrain</Label>
+                  <Input value={`Terrain ${addData.fieldId}`} disabled />
+                </div>
+                <div className="space-y-2">
+                  <Label>Créneau</Label>
+                  <Input value={addData.timeSlot} disabled />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label>Date</Label>
+                <Input value={addData.date} disabled />
+              </div>
+              <div className="space-y-2">
+                <Label>Nom du Client</Label>
+                <Input
+                  placeholder="Ex: Ahmed Ben Salem"
+                  value={addData.customerName}
+                  onChange={(e) => setAddData({ ...addData, customerName: e.target.value })}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Numéro de Téléphone</Label>
+                <Input
+                  placeholder="Ex: 0555 123 456"
+                  value={addData.customerPhone}
+                  onChange={(e) => setAddData({ ...addData, customerPhone: e.target.value })}
+                />
+              </div>
+              <div className="flex items-center gap-2 py-2">
+                <input
+                  type="checkbox"
+                  id="admin-recurring"
+                  className="w-4 h-4 rounded border-border text-primary focus:ring-primary"
+                  checked={addData.isRecurring}
+                  onChange={(e) => setAddData({ ...addData, isRecurring: e.target.checked })}
+                />
+                <label htmlFor="admin-recurring" className="text-sm font-medium text-foreground cursor-pointer">
+                  Réservation hebdomadaire (pendant 4 semaines)
+                </label>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowAddDialog(false)}>
+                Annuler
+              </Button>
+              <Button
+                onClick={handleCreateReservation}
+                disabled={!addData.customerName || !addData.customerPhone}
+              >
+                Réserver
+              </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>

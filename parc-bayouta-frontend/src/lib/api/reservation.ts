@@ -10,6 +10,8 @@ export interface HallReservation {
     guestCount: number;
     message?: string;
     status: 'pending' | 'confirmed' | 'canceled' | 'blocked';
+    isRecurring?: boolean;
+    recurringGroupId?: string;
     createdAt?: string;
 }
 
@@ -23,6 +25,8 @@ export interface FieldReservation {
     customerName: string;
     customerPhone: string;
     status: 'pending' | 'confirmed' | 'canceled' | 'blocked';
+    isRecurring?: boolean;
+    recurringGroupId?: string;
     createdAt?: string;
 }
 
@@ -119,7 +123,7 @@ export const reservationApi = {
         }
     },
 
-    getFields: async (): Promise<{ _id: string, name: string }[]> => {
+    getFields: async (): Promise<{ id: string, name: string }[]> => {
         const response = await fetch(`${API_URL}/field-reservations/fields`);
         if (!response.ok) {
             throw new Error('Failed to fetch fields');

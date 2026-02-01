@@ -20,6 +20,8 @@ const fieldReservationSchema = mongoose.Schema(
         customerName: { type: String, required: true },
         customerPhone: { type: String, required: true },
         status: { type: String, enum: ['pending', 'confirmed', 'canceled'], default: 'pending' },
+        isRecurring: { type: Boolean, default: false },
+        recurringGroupId: { type: String, default: null },
     },
     { timestamps: true }
 );

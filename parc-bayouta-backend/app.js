@@ -31,6 +31,7 @@ app.use((req, res, next) => {
 
 // Generic error handler
 app.use((err, req, res, next) => {
+<<<<<<< HEAD
     console.error('Error occurred:');
     console.error('Message:', err.message);
     console.error('Stack:', err.stack);
@@ -38,6 +39,15 @@ app.use((err, req, res, next) => {
     const status = err.status || 500;
     const message = err.message || 'Internal Server Error';
     res.status(status).send({ message });
+=======
+    console.error("ERROR:", err);
+    res.status(err.statusCode || 500).send({
+        message: err.message || "Internal Server Error",
+        // Optionnel pour debug:
+        // stack: err.stack,
+    });
+>>>>>>> ayarikhalil
 });
+
 
 module.exports = app;

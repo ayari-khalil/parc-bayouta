@@ -5,13 +5,19 @@ import { fieldReservations, events, eventReservations, contactMessages } from "@
 import { reservationApi, HallReservation } from "@/lib/api/reservation";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
+import { getTodayVisits } from "@/api/analyticsApi";
 
 export default function AdminDashboard() {
   const [realHallReservations, setRealHallReservations] = useState<HallReservation[]>([]);
+  const [todayVisits, setTodayVisits] = useState<number>(0);
 
   useEffect(() => {
     fetchHallReservations();
-    const interval = setInterval(fetchHallReservations, 5000);
+    fetchTodayVisits();
+    const interval = setInterval(() => {
+      fetchHallReservations();
+      fetchTodayVisits();
+    }, 5000);
     return () => clearInterval(interval);
   }, []);
 
@@ -24,10 +30,19 @@ export default function AdminDashboard() {
     }
   };
 
+  const fetchTodayVisits = async () => {
+    try {
+      const data = await getTodayVisits();
+      setTodayVisits(data.count);
+    } catch (error) {
+      console.error("Failed to fetch today's visits:", error);
+    }
+  };
+
   const stats = [
+    { label: "Visites aujourd'hui", value: todayVisits, icon: TrendingUp, color: "text-blue-500" },
     { label: "Réservations terrains", value: fieldReservations.length, icon: Calendar, color: "text-primary" },
     { label: "Réservations salle", value: realHallReservations.length, icon: PartyPopper, color: "text-secondary" },
-    { label: "Événements actifs", value: events.filter(e => e.isActive).length, icon: CalendarDays, color: "text-accent" },
     { label: "Messages non lus", value: contactMessages.filter(m => m.status === 'new').length, icon: Users, color: "text-destructive" },
   ];
 

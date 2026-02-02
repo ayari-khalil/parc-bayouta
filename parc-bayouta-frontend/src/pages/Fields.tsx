@@ -9,6 +9,7 @@ import { reservationApi, FieldReservation } from "@/lib/api/reservation";
 import terrainImg from "@/assets/terrain-foot.jpg";
 import { useToast } from "@/hooks/use-toast";
 import { useEffect } from "react";
+import { sendWhatsAppMessage } from "@/lib/whatsappUtils";
 
 const initialFields = [
   { id: 1, name: "Terrain 1", dbId: "" },
@@ -108,6 +109,17 @@ export default function Fields() {
         title: "Réservation réussie !",
         description: "Votre demande a été enregistrée. Nous vous contacterons bientôt.",
       });
+
+      // Send WhatsApp Notification to Admin
+      sendWhatsAppMessage({
+        type: 'Mini-Foot',
+        field: selectedFieldObj?.name || selectedTerrain.toString(),
+        name: formData.name,
+        phone: formData.phone,
+        date: format(selectedDate, "dd/MM/yyyy"),
+        time: selectedSlot || "",
+      });
+
       setShowForm(false);
       setSelectedSlot(null);
       setFormData({ name: "", phone: "" });

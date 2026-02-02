@@ -7,6 +7,7 @@ import { fr } from "date-fns/locale";
 import { PublicLayout } from "@/components/layout/PublicLayout";
 import { reservationApi, HallReservation } from "@/lib/api/reservation";
 import { useToast } from "@/hooks/use-toast";
+import { sendWhatsAppMessage } from "@/lib/whatsappUtils";
 import salle5 from "@/assets/gallery/salle/salle-1.jpg";
 import salle2 from "@/assets/gallery/salle/salle-2.jpg";
 import salle3 from "@/assets/gallery/salle/salle-3.jpg";
@@ -101,6 +102,17 @@ export default function EventHall() {
         title: "Réservation réussie !",
         description: "Votre demande a été enregistrée. Nous vous contacterons bientôt.",
       });
+
+      // Send WhatsApp Notification to Admin
+      sendWhatsAppMessage({
+        type: 'Salle des Fêtes',
+        name: formData.name,
+        phone: formData.phone,
+        date: format(selectedDate, "dd/MM/yyyy"),
+        guests: formData.guests,
+        message: formData.message,
+      });
+
       setShowForm(false);
       setSelectedDate(null);
       setFormData({ name: "", phone: "", eventType: "", guests: "", message: "" });

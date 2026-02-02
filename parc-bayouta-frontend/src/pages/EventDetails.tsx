@@ -8,6 +8,7 @@ import { events, getCategoryLabel, getCategoryColor } from "@/data/mockData";
 import { format, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
 import { useToast } from "@/hooks/use-toast";
+import { sendWhatsAppMessage } from "@/lib/whatsappUtils";
 
 export default function EventDetails() {
   const { slug } = useParams();
@@ -47,6 +48,18 @@ export default function EventDetails() {
       title: "Réservation confirmée !",
       description: `Votre réservation pour ${formData.attendees} personne(s) a été enregistrée.`,
     });
+
+    // Send WhatsApp Notification to Admin
+    sendWhatsAppMessage({
+      type: 'Événement',
+      title: event.title,
+      name: formData.name,
+      phone: formData.phone,
+      date: format(parseISO(event.date), "dd/MM/yyyy"),
+      time: event.time,
+      attendees: formData.attendees,
+    });
+
     setShowForm(false);
     setFormData({ name: "", phone: "", email: "", attendees: 1 });
   };
@@ -91,7 +104,7 @@ export default function EventDetails() {
               <h1 className="font-display text-3xl md:text-4xl font-bold text-foreground mb-4">
                 {event.title}
               </h1>
-              
+
               <div className="flex flex-wrap gap-4 mb-6">
                 <div className="flex items-center gap-2 text-muted-foreground">
                   <CalendarDays className="w-5 h-5 text-primary" />
@@ -137,7 +150,7 @@ export default function EventDetails() {
                     </div>
                   )}
                 </div>
-                
+
                 <Button
                   variant="hero"
                   size="lg"
@@ -178,7 +191,7 @@ export default function EventDetails() {
                   {format(parseISO(event.date), "EEEE d MMMM yyyy", { locale: fr })} à {event.time}
                 </p>
               </div>
-              
+
               <div>
                 <label className="text-sm font-medium text-foreground">Nom complet *</label>
                 <input
@@ -223,7 +236,7 @@ export default function EventDetails() {
                   onChange={(e) => setFormData({ ...formData, attendees: parseInt(e.target.value) || 1 })}
                 />
               </div>
-              
+
               <div className="p-4 bg-muted rounded-xl">
                 <div className="flex justify-between text-sm mb-2">
                   <span className="text-muted-foreground">{formData.attendees} x {event.price.toLocaleString()} DA</span>

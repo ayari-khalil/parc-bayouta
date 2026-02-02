@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Search, Calendar, Users, Clock, Check, X, Eye, Download, Filter, Trash2, Repeat } from "lucide-react";
+import { Search, Calendar, Users, Clock, Check, X, Eye, Download, Filter, Trash2, Repeat, Volume2, VolumeX } from "lucide-react";
 import { AdminLayout } from "@/components/layout/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -40,6 +40,8 @@ import {
 import { reservationApi, HallReservation, FieldReservation } from "@/lib/api/reservation";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
+import { useAuth } from "@/contexts/AuthContext";
+import { auditApi } from "@/api/auditApi";
 
 const initialFields = [
   { id: 1, name: "Terrain 1" },
@@ -49,12 +51,14 @@ const initialFields = [
 type ReservationType = 'field' | 'hall' | 'event';
 
 export default function AdminReservations() {
+  const { user } = useAuth();
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState<ReservationType>("field");
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [dateFilter, setDateFilter] = useState<string>("");
   const [fields, setFields] = useState(initialFields);
+  const [isAudioEnabled, setIsAudioEnabled] = useState(false);
 
   const [realFieldReservations, setRealFieldReservations] = useState<FieldReservation[]>([]);
   const [selectedFieldRes, setSelectedFieldRes] = useState<FieldReservation | null>(null);
@@ -62,19 +66,49 @@ export default function AdminReservations() {
   const [selectedHallRes, setSelectedHallRes] = useState<HallReservation | null>(null);
   const [selectedEventRes, setSelectedEventRes] = useState<EventReservation | null>(null);
 
-  const lastResCount = useRef(0);
+  const lastHallCount = useRef(0);
+  const lastFieldCount = useRef(0);
   const notificationSound = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
-    notificationSound.current = new Audio("https://assets.mixkit.co/active_storage/sfx/2358/2358-preview.mp3");
+    notificationSound.current = new Audio("https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3");
+
+    // Request Notification Permission
+    if ("Notification" in window && Notification.permission === "default") {
+      Notification.requestPermission();
+    }
+
+    // Auto-unlock audio on first user interaction
+    const unlockAudio = () => {
+      if (notificationSound.current) {
+        notificationSound.current.volume = 0;
+        notificationSound.current.play().then(() => {
+          notificationSound.current!.volume = 1.0;
+          setIsAudioEnabled(true);
+          window.removeEventListener('click', unlockAudio);
+          console.log("Audio context unlocked automatically");
+        }).catch(e => console.log("Unlock failed:", e));
+      }
+    };
+    window.addEventListener('click', unlockAudio);
 
     fetchInitialData();
     const interval = setInterval(() => {
       fetchHallReservations();
       fetchFieldReservations();
-    }, 5000);
-    return () => clearInterval(interval);
+    }, 10000);
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('click', unlockAudio);
+    };
   }, []);
+
+  const playNotificationSound = () => {
+    if (isAudioEnabled && notificationSound.current) {
+      notificationSound.current.currentTime = 0;
+      notificationSound.current.play().catch(e => console.error("Notification sound failed:", e));
+    }
+  };
 
   const fetchInitialData = async () => {
     try {
@@ -85,8 +119,16 @@ export default function AdminReservations() {
           return dbField ? { ...f, dbId: dbField.id || (dbField as any)._id } : f;
         }));
       }
-      fetchHallReservations();
-      fetchFieldReservations();
+
+      // Initial fetch to set baseline counts
+      const [hallData, fieldData] = await Promise.all([
+        reservationApi.getAllHallReservations(),
+        reservationApi.getAllFieldReservations()
+      ]);
+      setRealHallReservations(hallData);
+      setRealFieldReservations(fieldData);
+      lastHallCount.current = hallData.length;
+      lastFieldCount.current = fieldData.length;
     } catch (error) {
       console.error("Failed to fetch initial data:", error);
     }
@@ -96,16 +138,25 @@ export default function AdminReservations() {
     try {
       const data = await reservationApi.getAllHallReservations();
 
-      if (data.length > lastResCount.current && lastResCount.current > 0) {
-        notificationSound.current?.play().catch(e => console.log("Sound play failed:", e));
+      if (lastHallCount.current > 0 && data.length > lastHallCount.current) {
+        playNotificationSound();
+
+        // Browser Notification
+        if ("Notification" in window && Notification.permission === "granted") {
+          new Notification("Nouvelle réservation Salle", {
+            body: "Une nouvelle demande de réservation pour la salle a été reçue.",
+          });
+        }
+
         toast({
-          title: "Nouvelle réservation !",
+          title: "Nouvelle réservation Salle",
           description: "Une nouvelle demande de réservation pour la salle a été reçue.",
+          className: "bg-secondary text-white border-none",
         });
       }
 
       setRealHallReservations(data);
-      lastResCount.current = data.length;
+      lastHallCount.current = data.length;
     } catch (error) {
       console.error("Failed to fetch hall reservations:", error);
     }
@@ -114,7 +165,26 @@ export default function AdminReservations() {
   const fetchFieldReservations = async () => {
     try {
       const data = await reservationApi.getAllFieldReservations();
+
+      if (lastFieldCount.current > 0 && data.length > lastFieldCount.current) {
+        playNotificationSound();
+
+        // Browser Notification
+        if ("Notification" in window && Notification.permission === "granted") {
+          new Notification("Nouvelle réservation Terrain", {
+            body: "Un nouveau créneau a été réservé sur les terrains.",
+          });
+        }
+
+        toast({
+          title: "Nouvelle réservation Terrain",
+          description: "Un nouveau créneau a été réservé sur les terrains.",
+          className: "bg-primary text-white border-none",
+        });
+      }
+
       setRealFieldReservations(data);
+      lastFieldCount.current = data.length;
     } catch (error) {
       console.error("Failed to fetch field reservations:", error);
     }
@@ -151,9 +221,22 @@ export default function AdminReservations() {
   });
 
   const handleStatusChange = async (type: ReservationType, id: string, newStatus: 'confirmed' | 'canceled') => {
+    const actionLabel = newStatus === 'confirmed' ? "CONFIRMATION" : "ANNULATION";
+    const categoryLabel = type === 'field' ? "Réservations Terrains" : (type === 'hall' ? "Réservations Salle" : "Réservations Événements");
+
     if (type === 'hall') {
       try {
+        const res = realHallReservations.find(r => r.id === id);
         await reservationApi.updateHallReservationStatus(id, newStatus);
+
+        // Record Audit
+        await auditApi.recordLog({
+          admin: user?.username || "Admin",
+          action: actionLabel,
+          category: categoryLabel,
+          details: `${actionLabel} de la réservation salle pour ${res?.customerName}`
+        });
+
         fetchHallReservations();
         toast({
           title: newStatus === 'confirmed' ? "Réservation confirmée" : "Réservation annulée",
@@ -168,7 +251,17 @@ export default function AdminReservations() {
       }
     } else if (type === 'field') {
       try {
+        const res = realFieldReservations.find(r => (r.id || r._id) === id);
         await reservationApi.updateFieldReservationStatus(id, newStatus);
+
+        // Record Audit
+        await auditApi.recordLog({
+          admin: user?.username || "Admin",
+          action: actionLabel,
+          category: categoryLabel,
+          details: `${actionLabel} de la réservation terrain pour ${res?.customerName} (${res?.date} ${res?.timeSlot})`
+        });
+
         fetchFieldReservations();
         toast({
           title: newStatus === 'confirmed' ? "Réservation confirmée" : "Réservation annulée",
@@ -240,13 +333,21 @@ export default function AdminReservations() {
       <div className="space-y-6">
         {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-          <div>
-            <h1 className="text-2xl font-display font-bold">Toutes les Réservations</h1>
-            <p className="text-muted-foreground">Vue consolidée de toutes les réservations</p>
+          <div className="flex items-center gap-4">
+            <div>
+              <h1 className="text-2xl font-display font-bold">Gestion des Réservations</h1>
+              <p className="text-muted-foreground">Suivez et gérez toutes les demandes de réservation</p>
+            </div>
+            {isAudioEnabled && (
+              <Badge variant="outline" className="text-green-600 bg-green-500/10 border-green-500/20 gap-1 hidden sm:flex">
+                <Volume2 className="w-3 h-3" />
+                Alertes sonores actives
+              </Badge>
+            )}
           </div>
-          <Button onClick={handleExportCSV} variant="outline">
+          <Button variant="outline">
             <Download className="w-4 h-4 mr-2" />
-            Exporter CSV
+            Exporter
           </Button>
         </div>
 

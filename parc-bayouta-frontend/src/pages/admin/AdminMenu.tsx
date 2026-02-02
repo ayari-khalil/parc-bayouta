@@ -35,12 +35,15 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import * as menuApi from "@/api/menuApi";
+import { useAuth } from "@/contexts/AuthContext";
+import { auditApi } from "@/api/auditApi";
 
 const iconMap: Record<string, any> = {
   Coffee, UtensilsCrossed, IceCream, Cake, Wine
 };
 
 export default function AdminMenu() {
+  const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState("items");
@@ -92,9 +95,18 @@ export default function AdminMenu() {
   // Category mutations
   const createCategoryMutation = useMutation({
     mutationFn: menuApi.createCategory,
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['categories'] });
       toast({ title: "Catégorie créée", description: "La catégorie a été créée avec succès." });
+
+      // Audit
+      auditApi.recordLog({
+        admin: user?.username || "Admin",
+        action: "CRÉATION",
+        category: "Menu (Catégories)",
+        details: `Création de la catégorie: ${categoryForm.name}`
+      });
+
       setShowCategoryDialog(false);
       setCategoryForm({ name: "", icon: "Coffee" });
     },
@@ -137,9 +149,18 @@ export default function AdminMenu() {
   // Item mutations
   const createItemMutation = useMutation({
     mutationFn: menuApi.createMenuItem,
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ['menuItems'] });
       toast({ title: "Article créé", description: "L'article a été créé avec succès." });
+
+      // Audit
+      auditApi.recordLog({
+        admin: user?.username || "Admin",
+        action: "CRÉATION",
+        category: "Menu (Articles)",
+        details: `Création de l'article: ${itemForm.name}`
+      });
+
       setShowItemDialog(false);
       setItemForm({ name: "", price: "", description: "", category: "", isActive: true });
     },

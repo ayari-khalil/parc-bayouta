@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Plus, Edit, Trash2, Eye, Search, Calendar, Users, Ticket, Star, StarOff } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Plus, Edit, Trash2, Eye, Search, Calendar, Users, Ticket, Star, StarOff, Loader2 } from "lucide-react";
 import { AdminLayout } from "@/components/layout/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -32,13 +32,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
-import {
-  events,
-  eventReservations,
-  getCategoryLabel,
-  getCategoryColor,
-  Event
-} from "@/data/mockData";
+import { eventApi, Event, EventReservation } from "@/api/dashboardApi";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 
@@ -51,8 +45,26 @@ const categories = [
   { value: 'special', label: 'Spécial' },
 ];
 
+export const getCategoryLabel = (category: string) => {
+  return categories.find(c => c.value === category)?.label || category;
+};
+
+export const getCategoryColor = (category: string) => {
+  switch (category) {
+    case 'movie': return 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400';
+    case 'gaming': return 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400';
+    case 'party': return 'bg-pink-100 text-pink-700 dark:bg-pink-900/30 dark:text-pink-400';
+    case 'kids': return 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400';
+    case 'tournament': return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400';
+    default: return 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400';
+  }
+};
+
 export default function AdminEvents() {
   const { toast } = useToast();
+  const [events, setEvents] = useState<Event[]>([]);
+  const [reservations, setReservations] = useState<EventReservation[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -67,7 +79,7 @@ export default function AdminEvents() {
     date: "",
     time: "",
     endTime: "",
-    category: "movie" as Event['category'],
+    category: "movie",
     price: "",
     maxCapacity: "",
     location: "",
@@ -80,6 +92,30 @@ export default function AdminEvents() {
 
   // Delete confirmation
   const [deleteEventId, setDeleteEventId] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const fetchData = async () => {
+    try {
+      setLoading(true);
+      const [eventsData, resData] = await Promise.all([
+        eventApi.getEvents(),
+        eventApi.getReservations()
+      ]);
+      setEvents(eventsData);
+      setReservations(resData);
+    } catch (error) {
+      toast({
+        title: "Erreur",
+        description: "Impossible de charger les données.",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Filter events
   const filteredEvents = events.filter(event => {
@@ -98,7 +134,7 @@ export default function AdminEvents() {
       setEventForm({
         title: event.title,
         description: event.description,
-        longDescription: event.longDescription,
+        longDescription: event.longDescription || "",
         date: event.date,
         time: event.time,
         endTime: event.endTime || "",
@@ -107,7 +143,7 @@ export default function AdminEvents() {
         maxCapacity: event.maxCapacity.toString(),
         location: event.location,
         isActive: event.isActive,
-        isFeatured: event.isFeatured
+        isFeatured: event.isFeatured || false
       });
     } else {
       setEditingEvent(null);
@@ -129,40 +165,93 @@ export default function AdminEvents() {
     setShowEventDialog(true);
   };
 
-  const handleSaveEvent = () => {
-    toast({
-      title: editingEvent ? "Événement modifié" : "Événement créé",
-      description: `L'événement "${eventForm.title}" a été ${editingEvent ? 'modifié' : 'créé'} avec succès.`,
-    });
-    setShowEventDialog(false);
-    setEditingEvent(null);
+  const handleSaveEvent = async () => {
+    try {
+      const payload = {
+        ...eventForm,
+        slug: eventForm.title.toLowerCase().replace(/\s+/g, '-'),
+        price: Number(eventForm.price),
+        maxCapacity: Number(eventForm.maxCapacity),
+      };
+
+      if (editingEvent) {
+        await eventApi.updateEvent(editingEvent._id || editingEvent.id, payload);
+      } else {
+        await eventApi.createEvent(payload);
+      }
+
+      toast({
+        title: editingEvent ? "Événement modifié" : "Événement créé",
+        description: `L'événement "${eventForm.title}" a été enregistré avec succès.`,
+      });
+      setShowEventDialog(false);
+      fetchData();
+    } catch (error) {
+      toast({
+        title: "Erreur",
+        description: "Impossible d'enregistrer l'événement.",
+        variant: "destructive"
+      });
+    }
   };
 
-  const handleToggleFeatured = (event: Event) => {
-    toast({
-      title: event.isFeatured ? "Retiré des featured" : "Ajouté aux featured",
-      description: `L'événement "${event.title}" ${event.isFeatured ? 'n\'est plus' : 'est maintenant'} mis en avant.`,
-    });
+  const handleToggleFeatured = async (event: Event) => {
+    try {
+      await eventApi.updateEvent(event._id || event.id, { isFeatured: !event.isFeatured });
+      fetchData();
+      toast({
+        title: !event.isFeatured ? "Ajouté aux featured" : "Retiré des featured",
+        description: `L'événement "${event.title}" a été mis à jour.`,
+      });
+    } catch (error) {
+      toast({ title: "Erreur", variant: "destructive" });
+    }
   };
 
-  const handleToggleActive = (event: Event) => {
-    toast({
-      title: event.isActive ? "Événement désactivé" : "Événement activé",
-      description: `L'événement "${event.title}" a été ${event.isActive ? 'désactivé' : 'activé'}.`,
-    });
+  const handleToggleActive = async (event: Event) => {
+    try {
+      await eventApi.updateEvent(event._id || event.id, { isActive: !event.isActive });
+      fetchData();
+      toast({
+        title: !event.isActive ? "Activé" : "Désactivé",
+        description: `L'événement "${event.title}" a été mis à jour.`,
+      });
+    } catch (error) {
+      toast({ title: "Erreur", variant: "destructive" });
+    }
   };
 
-  const handleDeleteEvent = () => {
-    toast({
-      title: "Événement supprimé",
-      description: "L'événement a été supprimé avec succès.",
-    });
-    setDeleteEventId(null);
+  const handleDeleteEvent = async () => {
+    if (!deleteEventId) return;
+    try {
+      await eventApi.deleteEvent(deleteEventId);
+      toast({
+        title: "Événement supprimé",
+        description: "L'événement a été supprimé avec succès.",
+      });
+      setDeleteEventId(null);
+      fetchData();
+    } catch (error) {
+      toast({ title: "Erreur", variant: "destructive" });
+    }
   };
 
   const getEventReservations = (eventId: string) => {
-    return eventReservations.filter(r => r.eventId === eventId);
+    return reservations.filter(r => {
+      const id = typeof r.event === 'string' ? r.event : (r.event._id || r.event.id);
+      return id === eventId;
+    });
   };
+
+  if (loading) {
+    return (
+      <AdminLayout>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        </div>
+      </AdminLayout>
+    );
+  }
 
   return (
     <AdminLayout>
@@ -223,7 +312,7 @@ export default function AdminEvents() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                {events.reduce((acc, e) => acc + e.currentReservations, 0)}
+                {events.reduce((acc, e) => acc + (e.currentReservations || 0), 0)}
               </div>
             </CardContent>
           </Card>
@@ -291,7 +380,7 @@ export default function AdminEvents() {
                 </TableHeader>
                 <TableBody>
                   {filteredEvents.map((event) => (
-                    <TableRow key={event.id}>
+                    <TableRow key={event._id || event.id}>
                       <TableCell>
                         <div className="flex items-center gap-3">
                           {event.isFeatured && (
@@ -365,7 +454,7 @@ export default function AdminEvents() {
                             variant="ghost"
                             size="icon"
                             className="text-destructive hover:text-destructive"
-                            onClick={() => setDeleteEventId(event.id)}
+                            onClick={() => setDeleteEventId(event._id || event.id)}
                           >
                             <Trash2 className="w-4 h-4" />
                           </Button>
@@ -536,8 +625,8 @@ export default function AdminEvents() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {getEventReservations(viewingEvent.id).map((res) => (
-                    <TableRow key={res.id}>
+                  {getEventReservations(viewingEvent._id || viewingEvent.id).map((res) => (
+                    <TableRow key={res._id || res.id}>
                       <TableCell className="font-medium">{res.customerName}</TableCell>
                       <TableCell>{res.customerPhone}</TableCell>
                       <TableCell>{res.customerEmail || '-'}</TableCell>
@@ -549,7 +638,7 @@ export default function AdminEvents() {
                       </TableCell>
                     </TableRow>
                   ))}
-                  {getEventReservations(viewingEvent.id).length === 0 && (
+                  {getEventReservations(viewingEvent._id || viewingEvent.id).length === 0 && (
                     <TableRow>
                       <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
                         Aucune réservation pour cet événement

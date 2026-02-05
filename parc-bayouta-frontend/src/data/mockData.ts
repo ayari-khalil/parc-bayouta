@@ -310,8 +310,8 @@ export const admins: Admin[] = [
 ];
 
 // Helper functions
-export const getCategoryLabel = (category: Event['category']): string => {
-  const labels: Record<Event['category'], string> = {
+export const getCategoryLabel = (category: string): string => {
+  const labels: Record<string, string> = {
     movie: 'Cinéma',
     gaming: 'Gaming',
     party: 'Soirée',
@@ -319,11 +319,11 @@ export const getCategoryLabel = (category: Event['category']): string => {
     tournament: 'Tournoi',
     special: 'Spécial',
   };
-  return labels[category];
+  return labels[category] || 'Événement';
 };
 
-export const getCategoryColor = (category: Event['category']): string => {
-  const colors: Record<Event['category'], string> = {
+export const getCategoryColor = (category: string): string => {
+  const colors: Record<string, string> = {
     movie: 'bg-purple-500/10 text-purple-600',
     gaming: 'bg-blue-500/10 text-blue-600',
     party: 'bg-pink-500/10 text-pink-600',
@@ -331,10 +331,10 @@ export const getCategoryColor = (category: Event['category']): string => {
     tournament: 'bg-green-500/10 text-green-600',
     special: 'bg-amber-500/10 text-amber-600',
   };
-  return colors[category];
+  return colors[category] || 'bg-primary/10 text-primary';
 };
 
-export const getStatusColor = (status: 'pending' | 'confirmed' | 'canceled' | 'new' | 'processed' | 'archived' | 'blocked'): string => {
+export const getStatusColor = (status: string): string => {
   const colors: Record<string, string> = {
     pending: 'bg-yellow-500/10 text-yellow-600',
     confirmed: 'bg-green-500/10 text-green-600',
@@ -344,7 +344,7 @@ export const getStatusColor = (status: 'pending' | 'confirmed' | 'canceled' | 'n
     archived: 'bg-gray-500/10 text-gray-600',
     blocked: 'bg-destructive/10 text-destructive',
   };
-  return colors[status];
+  return colors[status] || 'bg-gray-100 text-gray-600';
 };
 
 export const getStatusLabel = (status: 'pending' | 'confirmed' | 'canceled' | 'new' | 'processed' | 'archived' | 'blocked'): string => {

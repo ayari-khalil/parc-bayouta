@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Search, Calendar, Users, Clock, Check, X, Eye, Download, Filter, Trash2, Repeat, Volume2, VolumeX } from "lucide-react";
+import { Search, Calendar, Users, Clock, Check, X, Eye, Download, Filter, Trash2, Repeat, Volume2, VolumeX, Loader2 } from "lucide-react";
 import { AdminLayout } from "@/components/layout/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -37,7 +37,7 @@ import {
   getStatusLabel,
   EventReservation
 } from "@/data/mockData";
-import { reservationApi, HallReservation, FieldReservation } from "@/lib/api/reservation";
+import { eventApi, Event, EventReservation as RealEventRes } from "@/api/dashboardApi";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { useAuth } from "@/contexts/AuthContext";
@@ -59,12 +59,16 @@ export default function AdminReservations() {
   const [dateFilter, setDateFilter] = useState<string>("");
   const [fields, setFields] = useState(initialFields);
   const [isAudioEnabled, setIsAudioEnabled] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   const [realFieldReservations, setRealFieldReservations] = useState<FieldReservation[]>([]);
   const [selectedFieldRes, setSelectedFieldRes] = useState<FieldReservation | null>(null);
   const [realHallReservations, setRealHallReservations] = useState<HallReservation[]>([]);
   const [selectedHallRes, setSelectedHallRes] = useState<HallReservation | null>(null);
-  const [selectedEventRes, setSelectedEventRes] = useState<EventReservation | null>(null);
+
+  const [realEventReservations, setRealEventReservations] = useState<RealEventRes[]>([]);
+  const [realEvents, setRealEvents] = useState<Event[]>([]);
+  const [selectedEventRes, setSelectedEventRes] = useState<RealEventRes | null>(null);
 
   const lastHallCount = useRef(0);
   const lastFieldCount = useRef(0);
@@ -96,6 +100,7 @@ export default function AdminReservations() {
     const interval = setInterval(() => {
       fetchHallReservations();
       fetchFieldReservations();
+      fetchEventReservations();
     }, 10000);
     return () => {
       clearInterval(interval);
@@ -112,6 +117,7 @@ export default function AdminReservations() {
 
   const fetchInitialData = async () => {
     try {
+      setLoading(true);
       const fieldsData = await reservationApi.getFields();
       if (fieldsData.length > 0) {
         setFields(prev => prev.map(f => {
@@ -121,40 +127,41 @@ export default function AdminReservations() {
       }
 
       // Initial fetch to set baseline counts
-      const [hallData, fieldData] = await Promise.all([
+      const [hallData, fieldData, eventResData, eventsData] = await Promise.all([
         reservationApi.getAllHallReservations(),
-        reservationApi.getAllFieldReservations()
+        reservationApi.getAllFieldReservations(),
+        eventApi.getReservations(),
+        eventApi.getEvents()
       ]);
       setRealHallReservations(hallData);
       setRealFieldReservations(fieldData);
+      setRealEventReservations(eventResData);
+      setRealEvents(eventsData);
       lastHallCount.current = hallData.length;
       lastFieldCount.current = fieldData.length;
     } catch (error) {
       console.error("Failed to fetch initial data:", error);
+    } finally {
+      setLoading(false);
     }
   };
 
   const fetchHallReservations = async () => {
     try {
       const data = await reservationApi.getAllHallReservations();
-
       if (lastHallCount.current > 0 && data.length > lastHallCount.current) {
         playNotificationSound();
-
-        // Browser Notification
         if ("Notification" in window && Notification.permission === "granted") {
           new Notification("Nouvelle réservation Salle", {
             body: "Une nouvelle demande de réservation pour la salle a été reçue.",
           });
         }
-
         toast({
           title: "Nouvelle réservation Salle",
           description: "Une nouvelle demande de réservation pour la salle a été reçue.",
           className: "bg-secondary text-white border-none",
         });
       }
-
       setRealHallReservations(data);
       lastHallCount.current = data.length;
     } catch (error) {
@@ -165,28 +172,32 @@ export default function AdminReservations() {
   const fetchFieldReservations = async () => {
     try {
       const data = await reservationApi.getAllFieldReservations();
-
       if (lastFieldCount.current > 0 && data.length > lastFieldCount.current) {
         playNotificationSound();
-
-        // Browser Notification
         if ("Notification" in window && Notification.permission === "granted") {
           new Notification("Nouvelle réservation Terrain", {
             body: "Un nouveau créneau a été réservé sur les terrains.",
           });
         }
-
         toast({
           title: "Nouvelle réservation Terrain",
           description: "Un nouveau créneau a été réservé sur les terrains.",
           className: "bg-primary text-white border-none",
         });
       }
-
       setRealFieldReservations(data);
       lastFieldCount.current = data.length;
     } catch (error) {
       console.error("Failed to fetch field reservations:", error);
+    }
+  };
+
+  const fetchEventReservations = async () => {
+    try {
+      const data = await eventApi.getReservations();
+      setRealEventReservations(data);
+    } catch (error) {
+      console.error("Failed to fetch event reservations:", error);
     }
   };
 
@@ -212,10 +223,12 @@ export default function AdminReservations() {
   });
 
   // Filter event reservations
-  const filteredEventReservations = eventReservations.filter(res => {
+  const filteredEventReservations = realEventReservations.filter(res => {
+    const event = typeof res.event === 'object' ? res.event : realEvents.find(e => (e._id || e.id) === res.event);
     const matchesSearch =
       res.customerName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      res.customerPhone.includes(searchQuery);
+      res.customerPhone.includes(searchQuery) ||
+      (event && event.title.toLowerCase().includes(searchQuery.toLowerCase()));
     const matchesStatus = statusFilter === "all" || res.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
@@ -224,102 +237,74 @@ export default function AdminReservations() {
     const actionLabel = newStatus === 'confirmed' ? "CONFIRMATION" : "ANNULATION";
     const categoryLabel = type === 'field' ? "Réservations Terrains" : (type === 'hall' ? "Réservations Salle" : "Réservations Événements");
 
-    if (type === 'hall') {
-      try {
+    try {
+      if (type === 'hall') {
         const res = realHallReservations.find(r => r.id === id);
         await reservationApi.updateHallReservationStatus(id, newStatus);
 
-        // Record Audit
         await auditApi.recordLog({
           admin: user?.username || "Admin",
           action: actionLabel,
           category: categoryLabel,
           details: `${actionLabel} de la réservation salle pour ${res?.customerName}`
         });
-
         fetchHallReservations();
-        toast({
-          title: newStatus === 'confirmed' ? "Réservation confirmée" : "Réservation annulée",
-          description: `La réservation a été ${newStatus === 'confirmed' ? 'confirmée' : 'annulée'} avec succès.`,
-        });
-      } catch (error) {
-        toast({
-          title: "Erreur",
-          description: "Impossible de mettre à jour le statut.",
-          variant: "destructive",
-        });
-      }
-    } else if (type === 'field') {
-      try {
+      } else if (type === 'field') {
         const res = realFieldReservations.find(r => (r.id || r._id) === id);
         await reservationApi.updateFieldReservationStatus(id, newStatus);
 
-        // Record Audit
         await auditApi.recordLog({
           admin: user?.username || "Admin",
           action: actionLabel,
           category: categoryLabel,
-          details: `${actionLabel} de la réservation terrain pour ${res?.customerName} (${res?.date} ${res?.timeSlot})`
+          details: `${actionLabel} de la réservation terrain pour ${res?.customerName}`
         });
-
         fetchFieldReservations();
-        toast({
-          title: newStatus === 'confirmed' ? "Réservation confirmée" : "Réservation annulée",
-          description: `La réservation a été ${newStatus === 'confirmed' ? 'confirmée' : 'annulée'} avec succès.`,
+      } else if (type === 'event') {
+        const res = realEventReservations.find(r => (r._id || r.id) === id);
+        await eventApi.updateReservationStatus(id, newStatus);
+
+        await auditApi.recordLog({
+          admin: user?.username || "Admin",
+          action: actionLabel,
+          category: categoryLabel,
+          details: `${actionLabel} de la réservation événement pour ${res?.customerName}`
         });
-      } catch (error) {
-        toast({
-          title: "Erreur",
-          description: "Impossible de mettre à jour le statut.",
-          variant: "destructive",
-        });
+        fetchEventReservations();
       }
-    } else {
+
       toast({
         title: newStatus === 'confirmed' ? "Réservation confirmée" : "Réservation annulée",
-        description: `La réservation a été ${newStatus === 'confirmed' ? 'confirmée' : 'annulée'} avec succès. (Mode Mock)`,
+        description: `La réservation a été mise à jour avec succès.`,
       });
+    } catch (error) {
+      toast({ title: "Erreur", description: "Impossible de mettre à jour le statut.", variant: "destructive" });
     }
     setSelectedFieldRes(null);
     setSelectedHallRes(null);
     setSelectedEventRes(null);
   };
 
-  const handleDeleteHallReservation = async (reservationId: string) => {
-    if (!window.confirm("Êtes-vous sûr de vouloir supprimer cette réservation définitivement ?")) return;
-
+  const handleDeleteEventReservation = async (id: string) => {
+    if (!window.confirm("Supprimer cette réservation ?")) return;
     try {
-      await reservationApi.deleteHallReservation(reservationId);
-      fetchHallReservations();
-      toast({
-        title: "Réservation supprimée",
-        description: "La réservation a été supprimée avec succès.",
-      });
-      setSelectedHallRes(null);
+      await eventApi.deleteReservation(id);
+      fetchEventReservations();
+      toast({ title: "Supprimé" });
+      setSelectedEventRes(null);
     } catch (error) {
-      toast({
-        title: "Erreur",
-        description: "Impossible de supprimer la réservation.",
-        variant: "destructive",
-      });
+      toast({ title: "Erreur", variant: "destructive" });
     }
   };
 
-  const handleExportCSV = () => {
-    toast({
-      title: "Export en cours",
-      description: "Le fichier CSV sera téléchargé dans quelques instants.",
-    });
-  };
-
   const getTotalReservations = () => {
-    return realFieldReservations.length + realHallReservations.length + eventReservations.length;
+    return realFieldReservations.length + realHallReservations.length + realEventReservations.length;
   };
 
   const getPendingReservations = () => {
     return realFieldReservations.filter(r => r.status === 'pending').length +
       realHallReservations.filter(r => r.status === 'pending').length +
-      eventReservations.filter(r => r.status === 'pending').length;
+      realEventReservations.filter(r => r.status === 'pending').length;
   };
 
   const getTodayReservations = () => {
@@ -327,6 +312,16 @@ export default function AdminReservations() {
     return realFieldReservations.filter(r => format(new Date(r.date), 'yyyy-MM-dd') === today).length +
       realHallReservations.filter(r => format(new Date(r.date), 'yyyy-MM-dd') === today).length;
   };
+
+  if (loading) {
+    return (
+      <AdminLayout>
+        <div className="flex items-center justify-center min-h-[400px]">
+          <Loader2 className="w-8 h-8 animate-spin text-primary" />
+        </div>
+      </AdminLayout>
+    );
+  }
 
   return (
     <AdminLayout>
@@ -663,9 +658,10 @@ export default function AdminReservations() {
                     </TableHeader>
                     <TableBody>
                       {filteredEventReservations.map((res) => {
-                        const event = events.find(e => e.id === res.eventId);
+                        const event = typeof res.event === 'object' ? res.event : realEvents.find(e => (e._id || e.id) === res.event);
+                        const resId = res._id || res.id || "";
                         return (
-                          <TableRow key={res.id}>
+                          <TableRow key={resId}>
                             <TableCell>
                               <div>
                                 <div className="font-medium">{event?.title || 'Événement inconnu'}</div>
@@ -709,7 +705,7 @@ export default function AdminReservations() {
                                       variant="ghost"
                                       size="icon"
                                       className="text-green-600"
-                                      onClick={() => handleStatusChange('event', res.id, 'confirmed')}
+                                      onClick={() => handleStatusChange('event', resId, 'confirmed')}
                                     >
                                       <Check className="w-4 h-4" />
                                     </Button>
@@ -717,12 +713,20 @@ export default function AdminReservations() {
                                       variant="ghost"
                                       size="icon"
                                       className="text-destructive"
-                                      onClick={() => handleStatusChange('event', res.id, 'canceled')}
+                                      onClick={() => handleStatusChange('event', resId, 'canceled')}
                                     >
                                       <X className="w-4 h-4" />
                                     </Button>
                                   </>
                                 )}
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="text-destructive"
+                                  onClick={() => handleDeleteEventReservation(resId)}
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
                               </div>
                             </TableCell>
                           </TableRow>
@@ -889,7 +893,7 @@ export default function AdminReservations() {
             {selectedEventRes && (
               <div className="space-y-4">
                 {(() => {
-                  const event = events.find(e => e.id === selectedEventRes.eventId);
+                  const event = typeof selectedEventRes.event === 'object' ? selectedEventRes.event : realEvents.find(e => (e._id || e.id) === selectedEventRes.event);
                   return (
                     <div className="grid grid-cols-2 gap-4">
                       <div className="col-span-2">
@@ -930,17 +934,24 @@ export default function AdminReservations() {
                 <>
                   <Button
                     variant="outline"
-                    onClick={() => handleStatusChange('event', selectedEventRes.id, 'canceled')}
+                    onClick={() => handleStatusChange('event', selectedEventRes._id || selectedEventRes.id || "", 'canceled')}
                   >
                     Annuler
                   </Button>
                   <Button
-                    onClick={() => handleStatusChange('event', selectedEventRes.id, 'confirmed')}
+                    onClick={() => handleStatusChange('event', selectedEventRes._id || selectedEventRes.id || "", 'confirmed')}
                   >
                     Confirmer
                   </Button>
                 </>
               )}
+              <Button
+                variant="destructive"
+                onClick={() => handleDeleteEventReservation(selectedEventRes?._id || selectedEventRes?.id || "")}
+              >
+                <Trash2 className="w-4 h-4 mr-2" />
+                Supprimer
+              </Button>
             </DialogFooter>
           </DialogContent>
         </Dialog>

@@ -1,19 +1,23 @@
-import { useState } from "react";
-import { useParams, Link } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useParams, Link, useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { CalendarDays, Clock, MapPin, Users, ArrowLeft, Ticket } from "lucide-react";
+import { CalendarDays, Clock, MapPin, Users, ArrowLeft, Ticket, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PublicLayout } from "@/components/layout/PublicLayout";
-import { events, getCategoryLabel, getCategoryColor } from "@/data/mockData";
+import { getCategoryLabel, getCategoryColor } from "@/data/mockData";
 import { format, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
 import { useToast } from "@/hooks/use-toast";
 import { sendWhatsAppMessage } from "@/lib/whatsappUtils";
+import { eventApi, Event } from "@/api/dashboardApi";
 
 export default function EventDetails() {
   const { slug } = useParams();
-  const event = events.find(e => e.slug === slug);
+  const navigate = useNavigate();
+  const [event, setEvent] = useState<Event | null>(null);
+  const [loading, setLoading] = useState(true);
   const [showForm, setShowForm] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
     phone: "",
@@ -21,6 +25,87 @@ export default function EventDetails() {
     attendees: 1,
   });
   const { toast } = useToast();
+
+  useEffect(() => {
+    fetchEvent();
+  }, [slug]);
+
+  const fetchEvent = async () => {
+    try {
+      setLoading(true);
+      const events = await eventApi.getEvents();
+      const found = events.find(e => e.slug === slug);
+      if (found) {
+        setEvent(found);
+      } else {
+        setEvent(null);
+      }
+    } catch (error) {
+      toast({
+        title: "Erreur",
+        description: "Impossible de charger les détails de l'événement.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!event) return;
+
+    try {
+      setSubmitting(true);
+      const resId = event._id || event.id;
+      await eventApi.createReservation({
+        event: resId,
+        customerName: formData.name,
+        customerPhone: formData.phone,
+        customerEmail: formData.email,
+        attendees: formData.attendees,
+      });
+
+      toast({
+        title: "Réservation envoyée !",
+        description: `Votre demande pour ${formData.attendees} personne(s) a été reçue et est en attente de confirmation.`,
+      });
+
+      // Send WhatsApp Notification to Admin
+      sendWhatsAppMessage({
+        type: 'Événement',
+        title: event.title,
+        name: formData.name,
+        phone: formData.phone,
+        date: format(parseISO(event.date), "dd/MM/yyyy"),
+        time: event.time,
+        attendees: formData.attendees,
+      });
+
+      setShowForm(false);
+      setFormData({ name: "", phone: "", email: "", attendees: 1 });
+      fetchEvent(); // Refresh to update currentReservations
+    } catch (error) {
+      toast({
+        title: "Erreur",
+        description: "Impossible d'enregistrer votre réservation. Veuillez réessayer.",
+        variant: "destructive",
+      });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <PublicLayout>
+        <div className="min-h-[60vh] flex flex-col items-center justify-center">
+          <Loader2 className="w-12 h-12 text-primary animate-spin mb-4" />
+          <p className="text-muted-foreground">Chargement de l'événement...</p>
+        </div>
+      </PublicLayout>
+    );
+  }
 
   if (!event) {
     return (
@@ -41,28 +126,6 @@ export default function EventDetails() {
 
   const spotsLeft = event.maxCapacity - event.currentReservations;
   const isFull = spotsLeft <= 0;
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    toast({
-      title: "Réservation confirmée !",
-      description: `Votre réservation pour ${formData.attendees} personne(s) a été enregistrée.`,
-    });
-
-    // Send WhatsApp Notification to Admin
-    sendWhatsAppMessage({
-      type: 'Événement',
-      title: event.title,
-      name: formData.name,
-      phone: formData.phone,
-      date: format(parseISO(event.date), "dd/MM/yyyy"),
-      time: event.time,
-      attendees: formData.attendees,
-    });
-
-    setShowForm(false);
-    setFormData({ name: "", phone: "", email: "", attendees: 1 });
-  };
 
   return (
     <PublicLayout>
@@ -254,8 +317,9 @@ export default function EventDetails() {
                 <Button type="button" variant="outline" className="flex-1" onClick={() => setShowForm(false)}>
                   Annuler
                 </Button>
-                <Button type="submit" variant="hero" className="flex-1">
-                  Confirmer
+                <Button type="submit" variant="hero" className="flex-1" disabled={submitting}>
+                  {submitting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                  {submitting ? "Envoi..." : "Confirmer"}
                 </Button>
               </div>
             </form>

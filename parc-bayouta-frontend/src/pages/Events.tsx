@@ -1,16 +1,18 @@
-import { useState, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { CalendarDays, Search, Users, MapPin, ArrowRight } from "lucide-react";
+import { CalendarDays, Search, Users, MapPin, ArrowRight, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PublicLayout } from "@/components/layout/PublicLayout";
-import { events, getCategoryLabel, getCategoryColor, Event } from "@/data/mockData";
+import { getCategoryLabel, getCategoryColor } from "@/data/mockData";
 import { format, parseISO, isAfter, isBefore } from "date-fns";
 import { fr } from "date-fns/locale";
+import { eventApi, Event } from "@/api/dashboardApi";
+import { useToast } from "@/hooks/use-toast";
 
 type DateFilter = 'all' | 'upcoming' | 'past';
-type CategoryFilter = Event['category'] | 'all';
+type CategoryFilter = string | 'all';
 
 const categories: { value: CategoryFilter; label: string }[] = [
   { value: 'all', label: 'Toutes' },
@@ -26,10 +28,33 @@ export default function Events() {
   const [search, setSearch] = useState("");
   const [dateFilter, setDateFilter] = useState<DateFilter>('upcoming');
   const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>('all');
+  const [events, setEvents] = useState<Event[]>([]);
+  const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
+
+  useEffect(() => {
+    fetchEvents();
+  }, []);
+
+  const fetchEvents = async () => {
+    try {
+      setLoading(true);
+      const data = await eventApi.getEvents();
+      setEvents(data);
+    } catch (error) {
+      toast({
+        title: "Erreur",
+        description: "Impossible de charger les événements.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const filteredEvents = useMemo(() => {
     const now = new Date();
-    
+
     return events
       .filter(event => event.isActive)
       .filter(event => {
@@ -58,11 +83,11 @@ export default function Events() {
       .sort((a, b) => {
         const dateA = parseISO(a.date);
         const dateB = parseISO(b.date);
-        return dateFilter === 'past' 
+        return dateFilter === 'past'
           ? dateB.getTime() - dateA.getTime()
           : dateA.getTime() - dateB.getTime();
       });
-  }, [search, dateFilter, categoryFilter]);
+  }, [events, search, dateFilter, categoryFilter]);
 
   return (
     <PublicLayout>
@@ -108,25 +133,22 @@ export default function Events() {
               <div className="flex gap-1 bg-muted rounded-lg p-1">
                 <button
                   onClick={() => setDateFilter('upcoming')}
-                  className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
-                    dateFilter === 'upcoming' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'
-                  }`}
+                  className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${dateFilter === 'upcoming' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'
+                    }`}
                 >
                   À venir
                 </button>
                 <button
                   onClick={() => setDateFilter('past')}
-                  className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
-                    dateFilter === 'past' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'
-                  }`}
+                  className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${dateFilter === 'past' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'
+                    }`}
                 >
                   Passés
                 </button>
                 <button
                   onClick={() => setDateFilter('all')}
-                  className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
-                    dateFilter === 'all' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'
-                  }`}
+                  className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${dateFilter === 'all' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'
+                    }`}
                 >
                   Tous
                 </button>
@@ -150,7 +172,12 @@ export default function Events() {
       {/* Events Grid */}
       <section className="py-12 bg-background">
         <div className="container mx-auto px-4">
-          {filteredEvents.length === 0 ? (
+          {loading ? (
+            <div className="flex flex-col items-center justify-center py-16">
+              <Loader2 className="w-12 h-12 text-primary animate-spin mb-4" />
+              <p className="text-muted-foreground">Chargement des événements...</p>
+            </div>
+          ) : filteredEvents.length === 0 ? (
             <div className="text-center py-16">
               <CalendarDays className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
               <h3 className="font-display text-2xl font-bold text-foreground mb-2">
@@ -168,7 +195,7 @@ export default function Events() {
 
                 return (
                   <motion.div
-                    key={event.id}
+                    key={event._id || event.id}
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: index * 0.05 }}
@@ -204,7 +231,7 @@ export default function Events() {
                       <p className="text-sm text-muted-foreground line-clamp-2 mb-4">
                         {event.description}
                       </p>
-                      
+
                       <div className="flex items-center gap-4 text-sm text-muted-foreground mb-4">
                         <div className="flex items-center gap-1">
                           <MapPin className="w-4 h-4" />

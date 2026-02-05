@@ -23,6 +23,7 @@ import AdminFields from "./pages/admin/AdminFields";
 import AdminEventHall from "./pages/admin/AdminEventHall";
 import AdminMenu from "./pages/admin/AdminMenu";
 import AdminEvents from "./pages/admin/AdminEvents";
+import AdminEventReservations from "./pages/admin/AdminEventReservations";
 import AdminReservations from "./pages/admin/AdminReservations";
 import AdminMessages from "./pages/admin/AdminMessages";
 import AdminSettings from "./pages/admin/AdminSettings";
@@ -69,6 +70,7 @@ const App = () => {
               <Route path="/admin/event-hall" element={<ProtectedRoute><AdminEventHall /></ProtectedRoute>} />
               <Route path="/admin/menu" element={<ProtectedRoute><AdminMenu /></ProtectedRoute>} />
               <Route path="/admin/events" element={<ProtectedRoute><AdminEvents /></ProtectedRoute>} />
+              <Route path="/admin/event-reservations" element={<ProtectedRoute><AdminEventReservations /></ProtectedRoute>} />
               <Route path="/admin/reservations" element={<ProtectedRoute><AdminReservations /></ProtectedRoute>} />
               <Route path="/admin/messages" element={<ProtectedRoute><AdminMessages /></ProtectedRoute>} />
               <Route path="/admin/settings" element={<ProtectedRoute><AdminSettings /></ProtectedRoute>} />

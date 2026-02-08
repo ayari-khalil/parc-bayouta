@@ -31,13 +31,12 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import {
-  eventReservations,
-  events,
   getStatusColor,
   getStatusLabel,
   EventReservation
 } from "@/data/mockData";
 import { eventApi, Event, EventReservation as RealEventRes } from "@/api/dashboardApi";
+import { reservationApi, HallReservation, FieldReservation } from "@/lib/api/reservation";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { useAuth } from "@/contexts/AuthContext";
@@ -285,6 +284,18 @@ export default function AdminReservations() {
     setSelectedEventRes(null);
   };
 
+  const handleDeleteHallReservation = async (id: string) => {
+    if (!window.confirm("Êtes-vous sûr de vouloir supprimer cette réservation ?")) return;
+    try {
+      await reservationApi.deleteHallReservation(id);
+      fetchHallReservations();
+      toast({ title: "Réservation supprimée", className: "bg-green-600 text-white border-none" });
+      setSelectedHallRes(null);
+    } catch (error) {
+      toast({ title: "Erreur", description: "Impossible de supprimer la réservation.", variant: "destructive" });
+    }
+  };
+
   const handleDeleteEventReservation = async (id: string) => {
     if (!window.confirm("Supprimer cette réservation ?")) return;
     try {
@@ -386,7 +397,7 @@ export default function AdminReservations() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold">
-                {realFieldReservations.length} / {realHallReservations.length} / {eventReservations.length}
+                {realFieldReservations.length} / {realHallReservations.length} / {realEventReservations.length}
               </div>
             </CardContent>
           </Card>

@@ -10,6 +10,7 @@ import cafeImg from "@/assets/cafe-restaurant.jpg";
 import { events, getCategoryLabel, getCategoryColor } from "@/data/mockData";
 import { format, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
+import { PublicLayout } from "@/components/layout/PublicLayout";
 
 const services = [
   {
@@ -49,7 +50,7 @@ export default function Home() {
   };
 
   return (
-    <div className="min-h-screen">
+    <PublicLayout>
       {/* Hero Section */}
       <section className="relative h-screen flex items-center justify-center overflow-hidden">
         <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: `url(${heroBg})` }} />
@@ -270,6 +271,6 @@ export default function Home() {
           </motion.div>
         </div>
       </section>
-    </div>
+    </PublicLayout>
   );
 }

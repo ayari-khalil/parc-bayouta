@@ -9,25 +9,25 @@ const contactInfo = [
   {
     icon: Phone,
     label: "Téléphone",
-    value: "+213 555 123 456",
-    href: "tel:+213555123456",
+    value: "+216 555 123 456",
+    href: "tel:+216555123456",
   },
   {
     icon: MessageCircle,
     label: "WhatsApp",
-    value: "+213 555 123 456",
+    value: "+216 555 123 456",
     href: "https://wa.me/213555123456",
   },
   {
     icon: Mail,
     label: "Email",
-    value: "contact@parcbayouta.dz",
-    href: "mailto:contact@parcbayouta.dz",
+    value: "contact@parcbayouta.tn",
+    href: "mailto:contact@parcbayouta.tn",
   },
   {
     icon: MapPin,
     label: "Adresse",
-    value: "Route principale, El Alia, Algérie",
+    value: "Route principale, El Alia, Khitmine, Bizerte",
     href: "https://maps.google.com",
   },
 ];
@@ -133,7 +133,7 @@ export default function Contact() {
               {/* Map */}
               <div className="bg-card rounded-2xl shadow-card overflow-hidden h-64">
                 <iframe
-                  src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d12805.943376929382!2d7.0!3d36.8!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zMzbCsDQ4JzAwLjAiTiA3wrAwMCcwMC4wIkU!5e0!3m2!1sfr!2sdz!4v1600000000000!5m2!1sfr!2sdz"
+                  src="https://maps.google.com/maps?q=37.14998704298729,9.996987783389775&hl=fr&z=14&output=embed"
                   width="100%"
                   height="100%"
                   style={{ border: 0 }}

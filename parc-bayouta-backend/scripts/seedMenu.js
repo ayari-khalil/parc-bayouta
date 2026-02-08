@@ -8,76 +8,122 @@ const MONGO_URI = process.env.MONGODB_URL;
 const categories = [
     {
         name: 'Pizzas',
-        icon: 'UtensilsCrossed',
+        icon: 'Pizza',
         order: 1,
         items: [
-            { name: 'Pizza Marguerite', price: 12.5, description: 'Sauce tomate, mozzarella, basilic frais, huile d\'olive' },
-            { name: 'Pizza 4 Saisons', price: 16.5, description: 'Sauce tomate, mozzarella, champignons, artichauts, jambon, olives' },
-            { name: 'Pizza Thon', price: 15.0, description: 'Sauce tomate, mozzarella, thon, oignons, olives' },
-            { name: 'Pizza Fruits de Mer', price: 24.5, description: 'Sauce tomate, mozzarella, mélange de fruits de mer, ail, persillade' },
-            { name: 'Pizza Viande Hachée', price: 18.0, description: 'Sauce tomate, mozzarella, viande hachée assaisonnée, poivrons' },
-            { name: 'Pizza Poulet', price: 17.0, description: 'Sauce crème ou tomate, mozzarella, poulet grillé, champignons' }
+            { name: 'Pizza Marguerite', price: 15 },
+            { name: 'Pizza Neptune', price: 17 },
+            { name: 'Pizza Escalope', price: 18 },
+            { name: 'Pizza Chawarma', price: 18 },
+            { name: 'Pizza Végétarienne', price: 17 },
+            { name: 'Pizza Réne', price: 18 },
+            { name: 'Pizza 4 Saisons', price: 20 },
+            { name: 'Pizza 4 Fromages', price: 20 },
+            { name: 'Pizza Pepperoni', price: 22 },
+            { name: 'Pizza Roquette Parmesan & Bresaola', price: 22 }
         ]
     },
+
     {
-        name: 'Sandwichs',
-        icon: 'UtensilsCrossed',
+        name: 'Makloub',
+        icon: 'Sandwich',
         order: 2,
         items: [
-            { name: 'Sandwich Thon Académique', price: 6.5, description: 'Thon, œuf, salade méchouia, pommes de terre, olives' },
-            { name: 'Sandwich Escalope', price: 9.5, description: 'Escalope de poulet grillée, frites, salade, sauces au choix' },
-            { name: 'Sandwich Chawarma Poulet', price: 10.5, description: 'Poulet mariné, crème d\'ail, cornichons, frites' },
-            { name: 'Libanais Mixte', price: 12.0, description: 'Viande et poulet, persil, oignons, sauce tarator' },
-            { name: 'Makloub Poulet', price: 9.0, description: 'Pâte à pizza pliée, poulet, fromage, salade, frites' }
+            { name: 'Makloub Chawarma', price: 14 },
+            { name: 'Makloub Escalope grillée', price: 14 },
+            { name: 'Makloub Escalope panée', price: 15 },
+            { name: 'Makloub Cordon Bleu', price: 15 }
         ]
     },
+
     {
-        name: 'Petit-déjeuner',
-        icon: 'Coffee',
+        name: 'Cornet',
+        icon: 'Sandwich',
         order: 3,
         items: [
-            { name: 'Petit-déjeuner Tunisien', price: 14.5, description: 'Assiette de chamia, beurre, miel, huile d\'olive, œuf, café au lait' },
-            { name: 'Petit-déjeuner Express', price: 7.5, description: 'Café au choix, croissant ou pain au chocolat, jus d\'orange frais' },
-            { name: 'Omelette Nature', price: 6.0, description: 'Deux œufs, servie avec pain frais' },
-            { name: 'Omelette Fromage / Jambon', price: 8.5, description: 'Deux œufs, fromage fondu, jambon de dinde' },
-            { name: 'Crêpe Sucrée Nutella', price: 9.0, description: 'Crêpe faite maison, généreuse couche de Nutella' }
+            { name: 'Cornet Chawarma', price: 14 },
+            { name: 'Cornet Escalope grillée', price: 14 },
+            { name: 'Cornet Escalope panée', price: 15 },
+            { name: 'Cornet Cordon Bleu', price: 15 }
         ]
     },
+
+    {
+        name: 'Baguette Farcie',
+        icon: 'Sandwich',
+        order: 4,
+        items: [
+            { name: 'Baguette Chawarma', price: 14 },
+            { name: 'Baguette Escalope grillée', price: 14 },
+            { name: 'Baguette Escalope panée', price: 15 },
+            { name: 'Baguette Cordon Bleu', price: 15 }
+        ]
+    },
+
     {
         name: 'Plats',
         icon: 'UtensilsCrossed',
-        order: 4,
-        items: [
-            { name: 'Couscous au Poisson', price: 28.0, description: 'Couscous traditionnel, poisson frais du jour, légumes de saison' },
-            { name: 'Pâtes au Fruit de Mer', price: 22.5, description: 'Spaghetti ou Penne, sauce tomate piquante, crevettes, moules, calamars' },
-            { name: 'Escalope Panée', price: 19.5, description: 'Servie avec frites, riz et salade variée' },
-            { name: 'Entrecôte Grillée', price: 29.5, description: 'Pièce de bœuf tendre, sauce poivre ou champignons, garniture au choix' },
-            { name: 'Ojja Royale', price: 18.5, description: 'Œufs pochés en sauce tomate, merguez, crevettes' }
-        ]
-    },
-    {
-        name: 'Jus & Smoothies',
-        icon: 'Wine',
         order: 5,
         items: [
-            { name: 'Jus d\'Orange Frais', price: 6.5, description: 'Pressé à la minute' },
-            { name: 'Citronnade Maison', price: 5.5, description: 'Citrons frais, menthe, servi bien frais' },
-            { name: 'Smoothie Fraise-Banane', price: 9.5, description: 'Fruits frais mixés avec du lait ou yaourt' },
-            { name: 'Jus Panaché', price: 10.0, description: 'Mélange de fruits de saison' },
-            { name: 'Cocktail Bayouta', price: 12.5, description: 'Spécialité de la maison, fruits secs et miel' }
+            { name: 'Poulet Grillé', price: 20 },
+            { name: 'Chawarma', price: 22 },
+            { name: 'Escalope Grillée', price: 20 },
+            { name: 'Escalope Panée', price: 23 },
+            { name: 'Cordon Bleu', price: 24 },
+            { name: 'Merguez', price: 23 },
+            { name: 'Grillade Mixte', price: 35 },
+            { name: 'Côtelette d’Agneau', price: 40 },
+            { name: 'Steak de Bœuf', price: 30 },
+            { name: 'Foie de Bœuf', price: 30 },
+            { name: 'Poisson (Dorade / Loup)', price: 28 },
+            { name: 'Menu Enfant', price: 10 }
         ]
     },
+
     {
-        name: 'Boissons',
+        name: 'Cafés & Boissons Chaudes',
         icon: 'Coffee',
         order: 6,
         items: [
-            { name: 'Café Express', price: 2.5, description: 'Espresso intense' },
-            { name: 'Café Direct / Crème', price: 3.2, description: 'Espresso avec une touche de lait' },
-            { name: 'Thé à la Menthe', price: 2.0, description: 'Thé vert traditionnel tunisien' },
-            { name: 'Thé aux Pignons', price: 4.5, description: 'Thé à la menthe servi avec des pignons royaux' },
-            { name: 'Eau Minérale (0.5L)', price: 1.5, description: 'Bouteille d\'eau fraîche' },
-            { name: 'Soda (Canette)', price: 3.5, description: 'Coca-Cola, Fanta, Bogua' }
+            { name: 'Express', price: 3 },
+            { name: 'Capucin', price: 4 },
+            { name: 'Direct', price: 4.5 },
+            { name: 'Américain', price: 4 },
+            { name: 'Iced Coffee', price: 5 },
+            { name: 'Caramel Iced Coffee', price: 6 },
+            { name: 'Latte Caramel Pop Corn', price: 7 },
+            { name: 'Chocolat Chaud', price: 7 },
+            { name: 'Nescafé', price: 5 },
+            { name: 'Café Turc', price: 5 }
+        ]
+    },
+
+    {
+        name: 'Milkshakes',
+        icon: 'IceCream',
+        order: 7,
+        items: [
+            { name: 'Vanille', price: 9 },
+            { name: 'Fraise', price: 10 },
+            { name: 'Chocolat', price: 10 },
+            { name: 'Oreo', price: 10 },
+            { name: 'Nutella', price: 12 },
+            { name: 'Speculoos', price: 12 },
+            { name: 'Chocolat Liégeois', price: 12 }
+        ]
+    },
+
+    {
+        name: 'Boissons Fraîches',
+        icon: 'GlassWater',
+        order: 8,
+        items: [
+            { name: 'Eau Minérale 1L', price: 2.5 },
+            { name: 'Eau Gazeuse', price: 3 },
+            { name: 'Boisson Gazeuse', price: 3.5 },
+            { name: 'Citronnade', price: 4.5 },
+            { name: 'Citronnade aux amandes', price: 5.5 },
+            { name: 'Jus de Fraise', price: 8 }
         ]
     }
 ];
@@ -86,35 +132,31 @@ async function seed() {
     try {
         console.log('Connecting to MongoDB...');
         await mongoose.connect(MONGO_URI);
-        console.log('Connected successfully.');
+        console.log('Connected.');
 
-        // Clear existing data
-        console.log('Clearing existing menu data...');
-        await MenuCategory.deleteMany({});
+        console.log('Deleting old menu...');
         await MenuItem.deleteMany({});
-        console.log('Data cleared.');
+        await MenuCategory.deleteMany({});
 
-        // Seed categories and items
-        for (const catData of categories) {
-            const { items, ...categoryFields } = catData;
+        for (const cat of categories) {
+            const { items, ...categoryData } = cat;
+            const category = await MenuCategory.create(categoryData);
 
-            const category = await MenuCategory.create(categoryFields);
-            console.log(`Created category: ${category.name}`);
+            await MenuItem.insertMany(
+                items.map(item => ({
+                    ...item,
+                    category: category._id,
+                    isActive: true
+                }))
+            );
 
-            const itemsToCreate = items.map(item => ({
-                ...item,
-                category: category._id,
-                isActive: true
-            }));
-
-            await MenuItem.insertMany(itemsToCreate);
-            console.log(`Added ${itemsToCreate.length} items to ${category.name}`);
+            console.log(`✔ ${category.name} seeded`);
         }
 
-        console.log('Seeding completed successfully!');
+        console.log('✅ Menu seeding completed');
         process.exit(0);
-    } catch (error) {
-        console.error('Seeding failed:', error);
+    } catch (err) {
+        console.error('❌ Seeding error:', err);
         process.exit(1);
     }
 }

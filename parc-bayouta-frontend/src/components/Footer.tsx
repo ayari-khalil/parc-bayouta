@@ -34,15 +34,15 @@ export const Footer = () => {
         <div className="flex flex-wrap justify-center gap-6 text-xs text-primary-foreground/80">
           <div className="flex items-center gap-2">
             <Phone className="w-4 h-4" />
-            <span>+213 555 123 456</span>
+            <span>+216 555 123 456</span>
           </div>
           <div className="flex items-center gap-2">
             <Mail className="w-4 h-4" />
-            <span>contact@parcbayouta.dz</span>
+            <span>contact@parcbayouta.tn</span>
           </div>
           <div className="flex items-center gap-2">
             <MapPin className="w-4 h-4" />
-            <span>El Alia, Algérie</span>
+            <span>El Alia,Bizerte, Tunisie</span>
           </div>
         </div>
 

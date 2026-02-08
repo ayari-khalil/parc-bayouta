@@ -35,11 +35,10 @@ export const Header = () => {
     <motion.header
       initial={{ y: -100 }}
       animate={{ y: 0 }}
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-        isScrolled
-          ? "bg-background/95 backdrop-blur-md shadow-soft py-3"
-          : "bg-transparent py-5"
-      }`}
+      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${isScrolled
+        ? "bg-background/95 backdrop-blur-md shadow-soft py-3"
+        : "bg-transparent py-5"
+        }`}
     >
       <div className="container mx-auto px-4 flex items-center justify-between">
         {/* Logo */}
@@ -49,17 +48,17 @@ export const Header = () => {
             e.preventDefault();
             scrollToSection("#accueil");
           }}
-          className="flex items-center gap-2"
+          className="flex items-center gap-3"
           whileHover={{ scale: 1.02 }}
         >
-          <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center">
-            <span className="text-primary-foreground font-display font-bold text-lg">B</span>
+          <div className="w-14 h-14 rounded-full bg-primary flex items-center justify-center">
+            <span className="text-primary-foreground font-display font-bold text-2xl">B</span>
           </div>
           <div className="flex flex-col">
-            <span className={`font-display font-bold text-xl leading-tight ${isScrolled ? 'text-foreground' : 'text-primary-foreground'}`}>
+            <span className={`font-display font-bold text-2xl leading-tight ${isScrolled ? 'text-foreground' : 'text-primary-foreground'}`}>
               Parc Bayouta
             </span>
-            <span className={`text-xs font-body ${isScrolled ? 'text-muted-foreground' : 'text-primary-foreground/80'}`}>
+            <span className={`text-sm font-body ${isScrolled ? 'text-muted-foreground' : 'text-primary-foreground/80'}`}>
               El Alia
             </span>
           </div>
@@ -75,9 +74,8 @@ export const Header = () => {
                 e.preventDefault();
                 scrollToSection(link.href);
               }}
-              className={`text-sm font-medium transition-colors hover:text-primary ${
-                isScrolled ? "text-foreground" : "text-primary-foreground"
-              }`}
+              className={`text-sm font-medium transition-colors hover:text-primary ${isScrolled ? "text-foreground" : "text-primary-foreground"
+                }`}
             >
               {link.name}
             </a>

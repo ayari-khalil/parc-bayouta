@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
+import { NotificationProvider } from "@/contexts/NotificationContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 
 // Public Pages
@@ -50,34 +51,36 @@ const App = () => {
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-            <Routes>
-              {/* Public Routes */}
-              <Route path="/" element={<Home />} />
-              <Route path="/fields" element={<Fields />} />
-              <Route path="/event-hall" element={<EventHall />} />
-              <Route path="/cafe-restaurant" element={<CafeRestaurant />} />
-              <Route path="/events" element={<Events />} />
-              <Route path="/events/:slug" element={<EventDetails />} />
-              <Route path="/contact" element={<Contact />} />
+          <NotificationProvider>
+            <Toaster />
+            <Sonner />
+            <BrowserRouter>
+              <Routes>
+                {/* Public Routes */}
+                <Route path="/" element={<Home />} />
+                <Route path="/fields" element={<Fields />} />
+                <Route path="/event-hall" element={<EventHall />} />
+                <Route path="/cafe-restaurant" element={<CafeRestaurant />} />
+                <Route path="/events" element={<Events />} />
+                <Route path="/events/:slug" element={<EventDetails />} />
+                <Route path="/contact" element={<Contact />} />
 
-              {/* Admin Routes */}
-              <Route path="/admin/login" element={<AdminLogin />} />
-              <Route path="/admin" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
-              <Route path="/admin/fields" element={<ProtectedRoute><AdminFields /></ProtectedRoute>} />
-              <Route path="/admin/event-hall" element={<ProtectedRoute><AdminEventHall /></ProtectedRoute>} />
-              <Route path="/admin/menu" element={<ProtectedRoute><AdminMenu /></ProtectedRoute>} />
-              <Route path="/admin/events" element={<ProtectedRoute><AdminEvents /></ProtectedRoute>} />
-              <Route path="/admin/event-reservations" element={<ProtectedRoute><AdminEventReservations /></ProtectedRoute>} />
-              <Route path="/admin/reservations" element={<ProtectedRoute><AdminReservations /></ProtectedRoute>} />
-              <Route path="/admin/messages" element={<ProtectedRoute><AdminMessages /></ProtectedRoute>} />
-              <Route path="/admin/settings" element={<ProtectedRoute><AdminSettings /></ProtectedRoute>} />
+                {/* Admin Routes */}
+                <Route path="/admin/login" element={<AdminLogin />} />
+                <Route path="/admin" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
+                <Route path="/admin/fields" element={<ProtectedRoute><AdminFields /></ProtectedRoute>} />
+                <Route path="/admin/event-hall" element={<ProtectedRoute><AdminEventHall /></ProtectedRoute>} />
+                <Route path="/admin/menu" element={<ProtectedRoute><AdminMenu /></ProtectedRoute>} />
+                <Route path="/admin/events" element={<ProtectedRoute><AdminEvents /></ProtectedRoute>} />
+                <Route path="/admin/event-reservations" element={<ProtectedRoute><AdminEventReservations /></ProtectedRoute>} />
+                <Route path="/admin/reservations" element={<ProtectedRoute><AdminReservations /></ProtectedRoute>} />
+                <Route path="/admin/messages" element={<ProtectedRoute><AdminMessages /></ProtectedRoute>} />
+                <Route path="/admin/settings" element={<ProtectedRoute><AdminSettings /></ProtectedRoute>} />
 
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </BrowserRouter>
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </BrowserRouter>
+          </NotificationProvider>
         </TooltipProvider>
       </AuthProvider>
     </QueryClientProvider>

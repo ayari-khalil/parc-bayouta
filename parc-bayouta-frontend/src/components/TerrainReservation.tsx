@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { Calendar, Clock, MapPin, Check, ChevronLeft, ChevronRight } from "lucide-react";
+import { useNotification } from "@/contexts/NotificationContext";
 import { Button } from "./ui/button";
 import { format, addDays, startOfWeek, isSameDay, isToday, isBefore } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -30,6 +31,7 @@ export const TerrainReservation = () => {
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
   const [weekStart, setWeekStart] = useState(startOfWeek(new Date(), { weekStartsOn: 1 }));
   const [showForm, setShowForm] = useState(false);
+  const { addNotification } = useNotification();
 
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
 
@@ -138,11 +140,10 @@ export const TerrainReservation = () => {
                       setSelectedTerrain(terrain.id);
                       setSelectedSlot(null);
                     }}
-                    className={`flex-1 p-4 rounded-xl border-2 transition-all ${
-                      selectedTerrain === terrain.id
-                        ? "border-primary bg-primary/5"
-                        : "border-border hover:border-primary/50"
-                    }`}
+                    className={`flex-1 p-4 rounded-xl border-2 transition-all ${selectedTerrain === terrain.id
+                      ? "border-primary bg-primary/5"
+                      : "border-border hover:border-primary/50"
+                      }`}
                   >
                     <MapPin className={`w-5 h-5 mb-2 ${selectedTerrain === terrain.id ? 'text-primary' : 'text-muted-foreground'}`} />
                     <p className={`font-medium ${selectedTerrain === terrain.id ? 'text-primary' : 'text-foreground'}`}>
@@ -185,13 +186,12 @@ export const TerrainReservation = () => {
                       setSelectedSlot(null);
                     }}
                     disabled={isBefore(day, new Date()) && !isToday(day)}
-                    className={`p-3 rounded-xl text-center transition-all ${
-                      isSameDay(day, selectedDate)
-                        ? "bg-primary text-primary-foreground"
-                        : isBefore(day, new Date()) && !isToday(day)
+                    className={`p-3 rounded-xl text-center transition-all ${isSameDay(day, selectedDate)
+                      ? "bg-primary text-primary-foreground"
+                      : isBefore(day, new Date()) && !isToday(day)
                         ? "bg-muted text-muted-foreground cursor-not-allowed"
                         : "bg-muted/50 hover:bg-muted text-foreground"
-                    }`}
+                      }`}
                   >
                     <p className="text-xs uppercase opacity-70">
                       {format(day, "EEE", { locale: fr })}
@@ -220,15 +220,14 @@ export const TerrainReservation = () => {
                         key={slot}
                         onClick={() => !disabled && setSelectedSlot(slot)}
                         disabled={disabled}
-                        className={`p-3 rounded-xl text-center font-medium transition-all ${
-                          selectedSlot === slot
-                            ? "bg-primary text-primary-foreground shadow-lg"
-                            : booked
+                        className={`p-3 rounded-xl text-center font-medium transition-all ${selectedSlot === slot
+                          ? "bg-primary text-primary-foreground shadow-lg"
+                          : booked
                             ? "bg-destructive/10 text-destructive line-through cursor-not-allowed"
                             : past
-                            ? "bg-muted text-muted-foreground cursor-not-allowed"
-                            : "bg-muted/50 hover:bg-primary/10 text-foreground hover:text-primary"
-                        }`}
+                              ? "bg-muted text-muted-foreground cursor-not-allowed"
+                              : "bg-muted/50 hover:bg-primary/10 text-foreground hover:text-primary"
+                          }`}
                       >
                         {slot}
                       </button>
@@ -323,7 +322,14 @@ export const TerrainReservation = () => {
                         <Button variant="outline" className="flex-1" onClick={() => setShowForm(false)}>
                           Annuler
                         </Button>
-                        <Button variant="hero" className="flex-1">
+                        <Button
+                          variant="hero"
+                          className="flex-1"
+                          onClick={() => {
+                            addNotification();
+                            setShowForm(false);
+                          }}
+                        >
                           Confirmer
                         </Button>
                       </div>

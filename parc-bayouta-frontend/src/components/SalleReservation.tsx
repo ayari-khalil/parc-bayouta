@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { Calendar, Users, PartyPopper, Check, ChevronLeft, ChevronRight } from "lucide-react";
+import { useNotification } from "@/contexts/NotificationContext";
 import { Button } from "./ui/button";
 import { format, addMonths, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isToday, isBefore, getDay } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -28,6 +29,7 @@ export const SalleReservation = () => {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [showForm, setShowForm] = useState(false);
+  const { addNotification } = useNotification();
   const [formData, setFormData] = useState({
     name: "",
     phone: "",
@@ -39,7 +41,7 @@ export const SalleReservation = () => {
   const monthStart = startOfMonth(currentMonth);
   const monthEnd = endOfMonth(currentMonth);
   const monthDays = eachDayOfInterval({ start: monthStart, end: monthEnd });
-  
+
   // Get the day of week for the first day (0 = Sunday, 1 = Monday, etc.)
   const startDay = getDay(monthStart);
   // Adjust for Monday start (0 = Monday, 6 = Sunday)
@@ -195,17 +197,16 @@ export const SalleReservation = () => {
                         key={day.toISOString()}
                         onClick={() => handleDateClick(day)}
                         disabled={booked || past}
-                        className={`aspect-square rounded-xl flex items-center justify-center font-medium transition-all ${
-                          selected
-                            ? "bg-secondary text-secondary-foreground shadow-lg"
-                            : booked
+                        className={`aspect-square rounded-xl flex items-center justify-center font-medium transition-all ${selected
+                          ? "bg-secondary text-secondary-foreground shadow-lg"
+                          : booked
                             ? "bg-destructive/10 text-destructive cursor-not-allowed"
                             : past
-                            ? "bg-muted/50 text-muted-foreground cursor-not-allowed"
-                            : isToday(day)
-                            ? "bg-primary/10 text-primary hover:bg-primary/20"
-                            : "hover:bg-secondary/10 text-foreground"
-                        }`}
+                              ? "bg-muted/50 text-muted-foreground cursor-not-allowed"
+                              : isToday(day)
+                                ? "bg-primary/10 text-primary hover:bg-primary/20"
+                                : "hover:bg-secondary/10 text-foreground"
+                          }`}
                       >
                         {format(day, "d")}
                       </button>
@@ -333,7 +334,14 @@ export const SalleReservation = () => {
                         <Button variant="outline" className="flex-1" onClick={() => setShowForm(false)}>
                           Annuler
                         </Button>
-                        <Button variant="warm" className="flex-1">
+                        <Button
+                          variant="warm"
+                          className="flex-1"
+                          onClick={() => {
+                            addNotification();
+                            setShowForm(false);
+                          }}
+                        >
                           Envoyer la demande
                         </Button>
                       </div>

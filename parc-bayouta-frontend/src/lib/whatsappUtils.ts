@@ -14,7 +14,7 @@ export const sendWhatsAppMessage = (details: {
     message?: string;
     attendees?: number;
 }) => {
-    const adminPhone = "21656261619";
+    const adminPhone = "21656251619";
 
     let text = `*Nouvelle réservation ${details.type}*\n\n`;
 

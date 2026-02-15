@@ -11,9 +11,10 @@ import { ProtectedRoute } from "@/components/ProtectedRoute";
 import Home from "./pages/Home";
 import Fields from "./pages/Fields";
 import EventHall from "./pages/EventHall";
-import CafeRestaurant from "./pages/CafeRestaurant";
-import Events from "./pages/Events";
 import EventDetails from "./pages/EventDetails";
+import CafeRestaurant from "./pages/CafeRestaurant";
+import CafeOrder from "./pages/CafeOrder";
+import Events from "./pages/Events";
 import Contact from "./pages/Contact";
 import NotFound from "./pages/NotFound";
 
@@ -23,6 +24,7 @@ import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminFields from "./pages/admin/AdminFields";
 import AdminEventHall from "./pages/admin/AdminEventHall";
 import AdminMenu from "./pages/admin/AdminMenu";
+import AdminOrders from "./pages/admin/AdminOrders";
 import AdminEvents from "./pages/admin/AdminEvents";
 import AdminEventReservations from "./pages/admin/AdminEventReservations";
 import AdminReservations from "./pages/admin/AdminReservations";
@@ -61,6 +63,7 @@ const App = () => {
                 <Route path="/fields" element={<Fields />} />
                 <Route path="/event-hall" element={<EventHall />} />
                 <Route path="/cafe-restaurant" element={<CafeRestaurant />} />
+                <Route path="/cafe-order" element={<CafeOrder />} />
                 <Route path="/events" element={<Events />} />
                 <Route path="/events/:slug" element={<EventDetails />} />
                 <Route path="/contact" element={<Contact />} />
@@ -71,6 +74,7 @@ const App = () => {
                 <Route path="/admin/fields" element={<ProtectedRoute><AdminFields /></ProtectedRoute>} />
                 <Route path="/admin/event-hall" element={<ProtectedRoute><AdminEventHall /></ProtectedRoute>} />
                 <Route path="/admin/menu" element={<ProtectedRoute><AdminMenu /></ProtectedRoute>} />
+                <Route path="/admin/orders" element={<ProtectedRoute><AdminOrders /></ProtectedRoute>} />
                 <Route path="/admin/events" element={<ProtectedRoute><AdminEvents /></ProtectedRoute>} />
                 <Route path="/admin/event-reservations" element={<ProtectedRoute><AdminEventReservations /></ProtectedRoute>} />
                 <Route path="/admin/reservations" element={<ProtectedRoute><AdminReservations /></ProtectedRoute>} />

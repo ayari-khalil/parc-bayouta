@@ -198,7 +198,7 @@ export default function Fields() {
                   <div className="mt-6 p-4 bg-primary/10 rounded-xl">
                     <p className="text-sm text-foreground font-medium">Tarif</p>
                     <p className="text-3xl font-display font-bold text-primary">
-                      3 000 DA
+                      72.000 DT
                       <span className="text-sm font-body font-normal text-muted-foreground">
                         {" "}/ 1h15
                       </span>
@@ -430,7 +430,7 @@ export default function Fields() {
                 <p className="text-foreground">
                   {format(selectedDate, "EEEE d MMMM yyyy", { locale: fr })} à {selectedSlot}
                 </p>
-                <p className="text-primary font-bold mt-2">3 000 DA</p>
+                <p className="text-primary font-bold mt-2">72.000 DT</p>
               </div>
               <div className="flex gap-3">
                 <Button type="button" variant="outline" className="flex-1" onClick={() => { setShowForm(false); setIsRecurring(false); }}>

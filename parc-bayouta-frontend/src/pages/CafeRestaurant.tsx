@@ -148,7 +148,7 @@ export default function CafeRestaurant() {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: index * 0.1 }}
-                    className="bg-card rounded-2xl shadow-card p-6 card-hover"
+                    className="bg-card rounded-2xl shadow-card p-6 flex flex-col"
                   >
                     <div className="flex items-center gap-3 mb-4 pb-4 border-b border-border">
                       <div className="w-10 h-10 rounded-xl bg-accent/10 flex items-center justify-center">
@@ -159,7 +159,7 @@ export default function CafeRestaurant() {
                       </h3>
                     </div>
 
-                    <ul className="space-y-3">
+                    <ul className="space-y-3 flex-grow">
                       {items.map((item) => (
                         <li
                           key={item.id}
@@ -217,13 +217,13 @@ export default function CafeRestaurant() {
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center">
                 <Button variant="accent" size="lg" asChild>
-                  <a href="tel:+213555123456">
+                  <a href="tel:+21655512345">
                     <Phone className="w-5 h-5" />
                     Appeler maintenant
                   </a>
                 </Button>
                 <Button variant="outline" size="lg" asChild>
-                  <a href="https://wa.me/213555123456" target="_blank" rel="noopener noreferrer">
+                  <a href="https://wa.me/21655512345" target="_blank" rel="noopener noreferrer">
                     Contacter via WhatsApp
                   </a>
                 </Button>

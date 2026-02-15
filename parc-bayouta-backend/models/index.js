@@ -6,6 +6,8 @@ const { Event, EventReservation } = require('./event.model');
 const { MenuCategory, MenuItem } = require('./menu.model');
 const HallReservation = require('./hallReservation.model');
 const ContactMessage = require('./contact.model');
+const Order = require('./order.model');
+const Notification = require('./notification.model');
 
 module.exports = {
     Field,
@@ -16,4 +18,6 @@ module.exports = {
     MenuItem,
     HallReservation,
     ContactMessage,
+    Order,
+    Notification,
 };

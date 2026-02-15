@@ -6,6 +6,8 @@ const analyticsRoute = require('./analytics.route');
 const eventRoute = require('./event.route');
 const contactRoute = require('./contact.route');
 const auditRoute = require('./audit.route');
+const orderRoute = require('./order.route');
+const notificationRoute = require('./notification.route');
 const router = express.Router();
 
 router.use('/hall-reservations', hallReservationRoute);
@@ -15,6 +17,8 @@ router.use('/analytics', analyticsRoute);
 router.use('/events', eventRoute);
 router.use('/messages', contactRoute);
 router.use('/audit', auditRoute);
+router.use('/orders', orderRoute);
+router.use('/notifications', notificationRoute);
 
 router.get('/health', (req, res) => {
     res.send('OK');

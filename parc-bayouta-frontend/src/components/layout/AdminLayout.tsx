@@ -12,7 +12,8 @@ import {
   LogOut,
   Menu,
   X,
-  ChevronLeft
+  ChevronLeft,
+  ShoppingBag
 } from "lucide-react";
 import { Button } from "../ui/button";
 import { useAuth } from "@/contexts/AuthContext";
@@ -29,6 +30,7 @@ const sidebarLinks = [
   { name: "Terrains", href: "/admin/fields", icon: Calendar },
   { name: "Salle des Fêtes", href: "/admin/event-hall", icon: PartyPopper },
   { name: "Café / Menu", href: "/admin/menu", icon: Coffee },
+  { name: "Commandes", href: "/admin/orders", icon: ShoppingBag },
   { name: "Événements", href: "/admin/events", icon: CalendarDays },
   { name: "Réservations", href: "/admin/reservations", icon: ClipboardList },
   { name: "Messages", href: "/admin/messages", icon: MessageSquare },

@@ -3,7 +3,16 @@ import { useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { Coffee, UtensilsCrossed, Cake, IceCream, Wine, Download, Phone, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { PublicLayout } from "@/components/layout/PublicLayout";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
+import { Info } from "lucide-react";
 import * as menuApi from "@/api/menuApi";
 import cafeImg from "@/assets/cafe-restaurant.jpg";
 
@@ -15,8 +24,11 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   Cake,
 };
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+
 export default function CafeRestaurant() {
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
+  const [selectedProduct, setSelectedProduct] = useState<menuApi.MenuItem | null>(null);
 
   // Fetch categories and menu items
   const { data: categories = [], isLoading: categoriesLoading } = useQuery({
@@ -131,72 +143,145 @@ export default function CafeRestaurant() {
           </div>
 
           {/* Menu Grid */}
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="flex flex-col gap-12">
             {activeCategory === null ? (
-              // Show categories with items
-              activeCategories.map((category, index) => {
+              // Show sections for each category
+              activeCategories.map((category, catIndex) => {
                 const Icon = iconMap[category.icon] || Coffee;
-                const categoryId = category.id;
                 const items = allMenuItems.filter(item => {
                   const itemCatId = typeof item.category === 'object' ? item.category.id : item.category;
-                  return itemCatId === categoryId;
+                  return itemCatId === category.id;
                 });
+
+                if (items.length === 0) return null;
 
                 return (
                   <motion.div
                     key={category.id}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: index * 0.1 }}
-                    className="bg-card rounded-2xl shadow-card p-6 flex flex-col"
+                    initial={{ opacity: 0, y: 30 }}
+                    whileInView={{ opacity: 1, y: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ delay: catIndex * 0.1 }}
+                    className="space-y-8"
                   >
-                    <div className="flex items-center gap-3 mb-4 pb-4 border-b border-border">
-                      <div className="w-10 h-10 rounded-xl bg-accent/10 flex items-center justify-center">
-                        <Icon className="w-5 h-5 text-accent" />
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 rounded-2xl bg-accent/10 flex items-center justify-center">
+                        <Icon className="w-6 h-6 text-accent" />
                       </div>
-                      <h3 className="font-display text-xl font-bold text-foreground">
-                        {category.name}
-                      </h3>
+                      <div>
+                        <h2 className="font-display text-2xl md:text-3xl font-bold text-foreground">
+                          {category.name}
+                        </h2>
+                        <div className="h-1 w-12 bg-accent mt-1 rounded-full" />
+                      </div>
                     </div>
 
-                    <ul className="space-y-3 flex-grow">
-                      {items.map((item) => (
-                        <li
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-6">
+                      {items.map((item, index) => (
+                        <motion.div
                           key={item.id}
-                          className="flex items-center justify-between text-sm"
+                          initial={{ opacity: 0, y: 20 }}
+                          whileInView={{ opacity: 1, y: 0 }}
+                          viewport={{ once: true }}
+                          transition={{ delay: index * 0.05 }}
+                          whileHover={{ y: -5 }}
+                          className="group relative bg-card rounded-xl md:rounded-2xl shadow-soft overflow-hidden hover:shadow-card transition-all cursor-pointer border border-border/50"
+                          onClick={() => setSelectedProduct(item)}
                         >
-                          <span className="text-foreground">{item.name}</span>
-                          <span className="font-medium text-accent">{item.price} DT</span>
-                        </li>
+                          {/* Image Container */}
+                          <div className="relative aspect-square overflow-hidden bg-muted">
+                            {item.image ? (
+                              <img
+                                src={`${API_URL}${item.image.startsWith('/') ? '' : '/'}${item.image}`}
+                                alt={item.name}
+                                className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                              />
+                            ) : (
+                              <div className="w-full h-full flex items-center justify-center text-muted-foreground/20">
+                                <Icon className="w-12 h-12" />
+                              </div>
+                            )}
+                            <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-4">
+                              <span className="text-white text-xs md:text-sm font-medium flex items-center gap-2">
+                                <Info className="w-4 h-4" /> Voir détails
+                              </span>
+                            </div>
+                          </div>
+
+                          {/* Content */}
+                          <div className="p-3 md:p-5">
+                            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start mb-1 md:mb-2">
+                              <h3 className="font-bold text-sm md:text-lg text-foreground group-hover:text-accent transition-colors line-clamp-1">
+                                {item.name}
+                              </h3>
+                              <span className="font-display text-sm md:text-lg font-bold text-accent whitespace-nowrap sm:ml-2">
+                                {item.price} DT
+                              </span>
+                            </div>
+                            {item.description && (
+                              <p className="text-xs md:text-sm text-muted-foreground line-clamp-1 md:line-clamp-2">
+                                {item.description}
+                              </p>
+                            )}
+                          </div>
+                        </motion.div>
                       ))}
-                    </ul>
+                    </div>
                   </motion.div>
                 );
               })
             ) : (
-              // Show filtered items
-              <div className="col-span-full">
-                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {filteredItems.map((item, index) => (
+              // Filtered View
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 md:gap-6">
+                {filteredItems.map((item, index) => {
+                  const Icon = iconMap[activeCategories.find(c => c.id === activeCategory)?.icon || 'Coffee'] || Coffee;
+                  return (
                     <motion.div
                       key={item.id}
                       initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: index * 0.05 }}
-                      className="bg-card rounded-xl shadow-soft p-4 flex items-center justify-between"
+                      whileHover={{ y: -5 }}
+                      className="group relative bg-card rounded-xl md:rounded-2xl shadow-soft overflow-hidden hover:shadow-card transition-all cursor-pointer border border-border/50"
+                      onClick={() => setSelectedProduct(item)}
                     >
-                      <div>
-                        <h4 className="font-medium text-foreground">{item.name}</h4>
+                      <div className="relative aspect-square overflow-hidden bg-muted">
+                        {item.image ? (
+                          <img
+                            src={`${API_URL}${item.image.startsWith('/') ? '' : '/'}${item.image}`}
+                            alt={item.name}
+                            className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-muted-foreground/20">
+                            <Icon className="w-12 h-12" />
+                          </div>
+                        )}
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-4">
+                          <span className="text-white text-xs md:text-sm font-medium flex items-center gap-2">
+                            <Info className="w-4 h-4" /> Voir détails
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="p-3 md:p-5">
+                        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start mb-1 md:mb-2">
+                          <h3 className="font-bold text-sm md:text-lg text-foreground group-hover:text-accent transition-colors line-clamp-1">
+                            {item.name}
+                          </h3>
+                          <span className="font-display text-sm md:text-lg font-bold text-accent whitespace-nowrap sm:ml-2">
+                            {item.price} DT
+                          </span>
+                        </div>
                         {item.description && (
-                          <p className="text-sm text-muted-foreground">{item.description}</p>
+                          <p className="text-xs md:text-sm text-muted-foreground line-clamp-1 md:line-clamp-2">
+                            {item.description}
+                          </p>
                         )}
                       </div>
-                      <span className="font-bold text-accent whitespace-nowrap ml-4">
-                        {item.price} DT
-                      </span>
                     </motion.div>
-                  ))}
-                </div>
+                  );
+                })}
               </div>
             )}
           </div>
@@ -232,6 +317,74 @@ export default function CafeRestaurant() {
           </motion.div>
         </div>
       </section>
+
+      {/* Product Details Modal */}
+      <Dialog open={!!selectedProduct} onOpenChange={() => setSelectedProduct(null)}>
+        <DialogContent className="max-w-2xl p-0 overflow-hidden rounded-3xl border-none">
+          {selectedProduct && (
+            <div className="flex flex-col md:flex-row h-full">
+              {/* Image Side */}
+              <div className="w-full md:w-1/2 aspect-square md:aspect-auto bg-muted">
+                {selectedProduct.image ? (
+                  <img
+                    src={`${API_URL}${selectedProduct.image.startsWith('/') ? '' : '/'}${selectedProduct.image}`}
+                    alt={selectedProduct.name}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center text-muted-foreground/20">
+                    {(() => {
+                      const Icon = iconMap[categories.find(c => {
+                        const catId = typeof selectedProduct.category === 'object' ? selectedProduct.category.id : selectedProduct.category;
+                        return c.id === catId;
+                      })?.icon || 'Coffee'] || Coffee;
+                      return <Icon className="w-20 h-20" />;
+                    })()}
+                  </div>
+                )}
+              </div>
+
+              {/* Info Side */}
+              <div className="w-full md:w-1/2 p-8 flex flex-col justify-center">
+                <div className="mb-6">
+                  <Badge variant="default" className="mb-4">
+                    {typeof selectedProduct.category === 'object' ? selectedProduct.category.name : categories.find(c => c.id === selectedProduct.category)?.name}
+                  </Badge>
+                  <h2 className="font-display text-3xl font-bold text-foreground mb-2">
+                    {selectedProduct.name}
+                  </h2>
+                  <div className="text-2xl font-display font-bold text-accent">
+                    {selectedProduct.price} DT
+                  </div>
+                </div>
+
+                {selectedProduct.description && (
+                  <div className="mb-8">
+                    <h4 className="text-sm font-bold uppercase tracking-wider text-muted-foreground mb-3">
+                      Description
+                    </h4>
+                    <p className="text-muted-foreground leading-relaxed">
+                      {selectedProduct.description}
+                    </p>
+                  </div>
+                )}
+
+                <Button
+                  variant="accent"
+                  size="lg"
+                  className="w-full rounded-2xl h-14 text-lg font-bold"
+                  onClick={() => {
+                    // Navigate to ordering page or just close for now
+                    window.location.href = '/order';
+                  }}
+                >
+                  Commander maintenant
+                </Button>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </PublicLayout>
   );
 }

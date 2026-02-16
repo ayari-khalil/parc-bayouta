@@ -15,6 +15,8 @@ import * as menuApi from "@/api/menuApi";
 import * as orderApi from "@/api/orderApi";
 import * as notificationApi from "@/api/notificationApi";
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+
 const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
     Coffee,
     IceCream,
@@ -189,7 +191,7 @@ export default function CafeOrder() {
                     </div>
 
                     {/* Menu items as cards */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mt-4">
+                    <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-3 md:gap-6 mt-4">
                         {filteredItems.map((item, index) => (
                             <motion.div
                                 key={item.id}
@@ -198,28 +200,32 @@ export default function CafeOrder() {
                                 transition={{ delay: index * 0.02, type: "spring", stiffness: 100 }}
                                 className="bg-card border border-border/40 rounded-[2rem] overflow-hidden shadow-sm hover:shadow-xl hover:border-accent/20 transition-all duration-300 group"
                             >
-                                <div className="relative h-48 w-full bg-muted overflow-hidden">
+                                <div className="relative h-32 sm:h-48 w-full bg-muted overflow-hidden">
                                     {item.image ? (
-                                        <img src={item.image} alt={item.name} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
+                                        <img
+                                            src={`${API_URL}${item.image.startsWith('/') ? '' : '/'}${item.image}`}
+                                            alt={item.name}
+                                            className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                                        />
                                     ) : (
                                         <div className="w-full h-full flex items-center justify-center text-muted-foreground/20">
-                                            <UtensilsCrossed className="w-12 h-12" />
+                                            <UtensilsCrossed className="w-8 h-8 sm:w-12 sm:h-12" />
                                         </div>
                                     )}
-                                    <div className="absolute top-4 right-4 bg-background/80 backdrop-blur-md px-3 py-1 rounded-full text-xs font-bold text-accent border border-accent/10">
+                                    <div className="absolute top-2 right-2 sm:top-4 sm:right-4 bg-background/80 backdrop-blur-md px-2 py-0.5 sm:px-3 sm:py-1 rounded-full text-[10px] sm:text-xs font-bold text-accent border border-accent/10">
                                         {item.price} DT
                                     </div>
                                 </div>
-                                <div className="p-6">
-                                    <h3 className="font-display text-xl font-bold text-foreground leading-tight group-hover:text-accent transition-colors">{item.name}</h3>
-                                    {item.description && <p className="text-sm text-muted-foreground mt-2 line-clamp-2 min-h-[40px]">{item.description}</p>}
-                                    <div className="flex items-center justify-between mt-6">
+                                <div className="p-3 sm:p-6">
+                                    <h3 className="font-display text-sm sm:text-xl font-bold text-foreground leading-tight group-hover:text-accent transition-colors line-clamp-1 sm:line-clamp-2">{item.name}</h3>
+                                    {item.description && <p className="text-[10px] sm:text-sm text-muted-foreground mt-1 sm:mt-2 line-clamp-1 sm:line-clamp-2 sm:min-h-[40px]">{item.description}</p>}
+                                    <div className="flex items-center justify-between mt-3 sm:mt-6">
                                         <Button
                                             variant="accent"
-                                            className="rounded-full px-6 py-5 h-auto font-bold shadow-lg shadow-accent/20 transition-transform active:scale-95 flex-grow mr-3"
+                                            className="rounded-full px-3 sm:px-6 py-3 sm:py-5 h-auto text-[10px] sm:text-sm font-bold shadow-lg shadow-accent/20 transition-transform active:scale-95 flex-grow mr-2 sm:mr-3"
                                             onClick={() => addToCart(item)}
                                         >
-                                            <ShoppingCart className="w-4 h-4 mr-2" />
+                                            <ShoppingCart className="w-3 h-3 sm:w-4 sm:h-4 mr-1 sm:mr-2" />
                                             Ajouter
                                         </Button>
                                         <div className="flex items-center gap-1">
@@ -240,25 +246,25 @@ export default function CafeOrder() {
                     <div className="flex gap-2">
                         <Button
                             variant="outline"
-                            className="rounded-full px-4 h-12 border-accent/20 text-accent hover:bg-accent/10"
+                            className="rounded-full px-3 sm:px-4 h-11 sm:h-12 border-accent/20 text-accent hover:bg-accent/10 text-xs sm:text-sm"
                             onClick={() => {
                                 setStaffAction('waiter_call');
                                 setShowTableModal(true);
                             }}
                         >
-                            <BellRing className="w-5 h-5 mr-2" />
-                            <span className="hidden sm:inline">Appeler Serveur</span>
+                            <BellRing className="w-4 h-4 sm:w-5 sm:h-5 mr-1.5 sm:mr-2" />
+                            <span>Appeler</span>
                         </Button>
                         <Button
                             variant="outline"
-                            className="rounded-full px-4 h-12 border-accent/20 text-accent hover:bg-accent/10"
+                            className="rounded-full px-3 sm:px-4 h-11 sm:h-12 border-accent/20 text-accent hover:bg-accent/10 text-xs sm:text-sm"
                             onClick={() => {
                                 setStaffAction('bill_request');
                                 setShowTableModal(true);
                             }}
                         >
-                            <Receipt className="w-5 h-5 mr-2" />
-                            <span className="hidden sm:inline">Addition</span>
+                            <Receipt className="w-4 h-4 sm:w-5 sm:h-5 mr-1.5 sm:mr-2" />
+                            <span>Addition</span>
                         </Button>
                     </div>
 
@@ -291,7 +297,11 @@ export default function CafeOrder() {
                                     <div key={item.id} className="flex gap-3 px-2">
                                         {item.image && (
                                             <div className="w-16 h-16 rounded-lg overflow-hidden flex-shrink-0 bg-muted">
-                                                <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
+                                                <img
+                                                    src={`${API_URL}${item.image.startsWith('/') ? '' : '/'}${item.image}`}
+                                                    alt={item.name}
+                                                    className="w-full h-full object-cover"
+                                                />
                                             </div>
                                         )}
                                         <div className="flex-grow">

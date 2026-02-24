@@ -278,16 +278,13 @@ export default function CafeOrder() {
                                 </SheetTitle>
                             </SheetHeader>
 
-                            <div className="flex-grow overflow-y-auto py-8 space-y-6 no-scrollbar px-2">
+                            <div className="flex-grow overflow-y-auto pt-4 pb-8 space-y-4 no-scrollbar px-2">
                                 {cart.map((item) => (
-                                    <motion.div
-                                        layout
-                                        initial={{ opacity: 0, x: 20 }}
-                                        animate={{ opacity: 1, x: 0 }}
+                                    <div
                                         key={item.id}
-                                        className="flex gap-4 p-4 rounded-3xl bg-muted/30 border border-border/10 group"
+                                        className="flex gap-4 p-3 rounded-2xl bg-muted/20 border border-border/10 items-center transition-all hover:bg-muted/30"
                                     >
-                                        <div className="w-20 h-20 rounded-2xl overflow-hidden flex-shrink-0 bg-muted relative">
+                                        <div className="w-20 h-20 rounded-xl overflow-hidden flex-shrink-0 bg-muted border border-border/10">
                                             {item.image ? (
                                                 <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
                                             ) : (
@@ -296,34 +293,33 @@ export default function CafeOrder() {
                                                 </div>
                                             )}
                                         </div>
-                                        <div className="flex-grow flex flex-col justify-between py-1">
-                                            <div>
-                                                <div className="flex justify-between items-start">
-                                                    <h4 className="font-bold text-lg text-foreground line-clamp-1">{item.name}</h4>
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="icon"
-                                                        className="h-8 w-8 rounded-xl text-muted-foreground hover:text-destructive hover:bg-destructive/10 -mt-2 -mr-2"
-                                                        onClick={() => removeFromCart(item.id)}
-                                                    >
-                                                        <Trash2 className="w-4 h-4" />
-                                                    </Button>
-                                                </div>
-                                                <span className="text-accent font-black text-lg">{item.price} DT</span>
+
+                                        <div className="flex-grow flex flex-col min-w-0">
+                                            <div className="flex justify-between items-start mb-1">
+                                                <h4 className="font-bold text-base text-foreground truncate pr-2">{item.name}</h4>
+                                                <button
+                                                    className="p-1.5 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors"
+                                                    onClick={() => removeFromCart(item.id)}
+                                                    title="Supprimer"
+                                                >
+                                                    <Trash2 className="w-4 h-4" />
+                                                </button>
                                             </div>
 
-                                            <div className="flex items-center justify-end mt-2">
-                                                <div className="flex items-center gap-4 bg-background px-4 py-2 rounded-2xl border border-border/40">
+                                            <div className="flex items-center justify-between mt-auto">
+                                                <span className="text-accent font-bold text-lg">{item.price} DT</span>
+
+                                                <div className="flex items-center gap-3 bg-background/50 p-1 rounded-xl border border-border/40">
                                                     <button
-                                                        className="text-muted-foreground hover:text-accent transition-colors disabled:opacity-20"
+                                                        className="w-8 h-8 flex items-center justify-center rounded-lg text-muted-foreground hover:text-accent hover:bg-accent/10 transition-colors disabled:opacity-20"
                                                         onClick={() => updateQuantity(item.id, -1)}
                                                         disabled={item.quantity <= 1}
                                                     >
                                                         <Minus className="w-4 h-4" />
                                                     </button>
-                                                    <span className="font-black text-sm w-6 text-center">{item.quantity}</span>
+                                                    <span className="font-bold text-sm min-w-[20px] text-center">{item.quantity}</span>
                                                     <button
-                                                        className="text-muted-foreground hover:text-accent transition-colors"
+                                                        className="w-8 h-8 flex items-center justify-center rounded-lg text-muted-foreground hover:text-accent hover:bg-accent/10 transition-colors"
                                                         onClick={() => updateQuantity(item.id, 1)}
                                                     >
                                                         <Plus className="w-4 h-4" />
@@ -331,36 +327,39 @@ export default function CafeOrder() {
                                                 </div>
                                             </div>
                                         </div>
-                                    </motion.div>
+                                    </div>
                                 ))}
 
                                 {cart.length === 0 && (
-                                    <div className="text-center py-32 flex flex-col items-center">
-                                        <div className="w-24 h-24 bg-muted/50 rounded-full flex items-center justify-center mb-6">
-                                            <ShoppingCart className="w-12 h-12 text-muted-foreground/20" />
+                                    <div className="text-center py-20 flex flex-col items-center">
+                                        <div className="w-20 h-20 bg-muted/30 rounded-full flex items-center justify-center mb-4">
+                                            <ShoppingCart className="w-10 h-10 text-muted-foreground/20" />
                                         </div>
-                                        <p className="text-xl font-bold text-foreground">Votre panier est vide</p>
-                                        <p className="text-muted-foreground mt-2 max-w-[200px] text-center">Ajoutez des délices de notre carte pour commencer.</p>
+                                        <p className="font-bold text-foreground">Votre panier est vide</p>
+                                        <p className="text-sm text-muted-foreground mt-1 px-10 text-center">Parcourez notre menu pour ajouter des articles.</p>
                                     </div>
                                 )}
                             </div>
 
                             {cart.length > 0 && (
-                                <SheetFooter className="p-8 bg-background border-t border-border/40 !flex flex-col gap-6 w-full mt-auto">
-                                    <div className="flex justify-between items-center text-xl font-black">
-                                        <span className="text-muted-foreground text-sm uppercase tracking-widest">Total à payer</span>
-                                        <span className="text-accent text-3xl font-black">{cartTotal} DT</span>
+                                <SheetFooter className="p-4 bg-background border-t border-border/10 !flex-row items-center gap-4 mt-auto">
+                                    <div className="flex flex-col justify-center min-w-[80px]">
+                                        <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-tight">Total</span>
+                                        <div className="flex items-baseline gap-1">
+                                            <span className="text-xl font-bold text-foreground">{cartTotal}</span>
+                                            <span className="text-[10px] font-bold text-accent">DT</span>
+                                        </div>
                                     </div>
                                     <Button
-                                        className="w-full h-16 rounded-[1.5rem] text-xl font-black gap-4 shadow-2xl shadow-accent/30 group py-4"
+                                        className="flex-grow h-12 rounded-xl text-sm font-bold gap-2 shadow-md shadow-accent/10"
                                         variant="accent"
                                         onClick={() => {
                                             setStaffAction(null);
                                             setShowTableModal(true);
                                         }}
                                     >
-                                        <Send className="w-6 h-6 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
-                                        Finaliser Commande
+                                        <Send className="w-4 h-4" />
+                                        Commander maintenant
                                     </Button>
                                 </SheetFooter>
                             )}

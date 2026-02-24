@@ -152,7 +152,7 @@ export default function CafeOrder() {
     return (
         <PublicLayout>
             {/* Header Space */}
-            <div className="pt-24 pb-8 bg-background">
+            <div className="pt-24 pb-10 bg-background border-b border-border/40">
                 <div className="container mx-auto px-4 text-center">
                     <h1 className="font-display text-3xl font-bold text-foreground">Passer une commande</h1>
                     <p className="text-muted-foreground mt-2">Choisissez vos produits et notre équipe s'occupe du reste</p>
@@ -164,7 +164,7 @@ export default function CafeOrder() {
                 <div className="container mx-auto px-4">
 
                     {/* Categories Horizontal Scroll */}
-                    <div className="flex gap-3 overflow-x-auto pb-6 no-scrollbar sticky top-[72px] z-20 bg-background/80 backdrop-blur-md pt-2">
+                    <div className="flex gap-2 overflow-x-auto py-6 no-scrollbar sticky top-[72px] z-20 bg-background pt-2 border-b">
                         <Button
                             variant={activeCategory === null ? "accent" : "outline"}
                             onClick={() => setActiveCategory(null)}
@@ -174,10 +174,11 @@ export default function CafeOrder() {
                         </Button>
                         {activeCategories.map((category) => {
                             const Icon = iconMap[category.icon] || Coffee;
+                            const isActive = activeCategory === category.id;
                             return (
                                 <Button
                                     key={category.id}
-                                    variant={activeCategory === category.id ? "accent" : "outline"}
+                                    variant={isActive ? "accent" : "outline"}
                                     onClick={() => setActiveCategory(category.id)}
                                     className="rounded-full px-6 gap-2 flex-shrink-0"
                                 >
@@ -189,75 +190,68 @@ export default function CafeOrder() {
                     </div>
 
                     {/* Menu items as cards */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mt-4">
-                        {filteredItems.map((item, index) => (
-                            <motion.div
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4 mt-6">
+                        {filteredItems.map((item) => (
+                            <div
                                 key={item.id}
-                                initial={{ opacity: 0, y: 15 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                transition={{ delay: index * 0.02, type: "spring", stiffness: 100 }}
-                                className="bg-card border border-border/40 rounded-[2rem] overflow-hidden shadow-sm hover:shadow-xl hover:border-accent/20 transition-all duration-300 group"
+                                className="bg-card border border-border/40 rounded-2xl overflow-hidden shadow-sm flex flex-col group"
                             >
                                 <div className="relative h-48 w-full bg-muted overflow-hidden">
                                     {item.image ? (
-                                        <img src={item.image} alt={item.name} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" />
+                                        <img src={item.image} alt={item.name} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
                                     ) : (
                                         <div className="w-full h-full flex items-center justify-center text-muted-foreground/20">
                                             <UtensilsCrossed className="w-12 h-12" />
                                         </div>
                                     )}
-                                    <div className="absolute top-4 right-4 bg-background/80 backdrop-blur-md px-3 py-1 rounded-full text-xs font-bold text-accent border border-accent/10">
+                                    <div className="absolute top-4 right-4 bg-background/90 px-3 py-1 rounded-full text-xs font-bold text-accent shadow-sm border border-border/10">
                                         {item.price} DT
                                     </div>
                                 </div>
-                                <div className="p-6">
-                                    <h3 className="font-display text-xl font-bold text-foreground leading-tight group-hover:text-accent transition-colors">{item.name}</h3>
+                                <div className="p-5 flex flex-col flex-grow">
+                                    <h3 className="font-display text-xl font-bold text-foreground leading-tight">{item.name}</h3>
                                     {item.description && <p className="text-sm text-muted-foreground mt-2 line-clamp-2 min-h-[40px]">{item.description}</p>}
-                                    <div className="flex items-center justify-between mt-6">
+                                    <div className="mt-6">
                                         <Button
-                                            variant="accent"
-                                            className="rounded-full px-6 py-5 h-auto font-bold shadow-lg shadow-accent/20 transition-transform active:scale-95 flex-grow mr-3"
+                                            variant="secondary"
+                                            className="w-full rounded-xl font-bold active:scale-95 transition-transform"
                                             onClick={() => addToCart(item)}
                                         >
-                                            <ShoppingCart className="w-4 h-4 mr-2" />
+                                            <Plus className="w-4 h-4 mr-2" />
                                             Ajouter
                                         </Button>
-                                        <div className="flex items-center gap-1">
-                                            <div className="w-2 h-2 rounded-full bg-accent animate-pulse" />
-                                            <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Frais</span>
-                                        </div>
                                     </div>
                                 </div>
-                            </motion.div>
+                            </div>
                         ))}
                     </div>
                 </div>
             </section>
 
             {/* Footer Controls Overlay */}
-            <div className="fixed bottom-0 left-0 right-0 z-40 bg-background/80 backdrop-blur-xl border-t border-border">
+            <div className="fixed bottom-0 left-0 right-0 z-40 bg-background border-t">
                 <div className="container mx-auto px-4 py-4 flex items-center justify-between gap-4">
                     <div className="flex gap-2">
                         <Button
                             variant="outline"
-                            className="rounded-full px-4 h-12 border-accent/20 text-accent hover:bg-accent/10"
+                            className="rounded-xl px-4 h-12 border-border"
                             onClick={() => {
                                 setStaffAction('waiter_call');
                                 setShowTableModal(true);
                             }}
                         >
-                            <BellRing className="w-5 h-5 mr-2" />
-                            <span className="hidden sm:inline">Appeler Serveur</span>
+                            <BellRing className="w-5 h-5 mr-2 text-accent" />
+                            <span className="hidden sm:inline">Serveur</span>
                         </Button>
                         <Button
                             variant="outline"
-                            className="rounded-full px-4 h-12 border-accent/20 text-accent hover:bg-accent/10"
+                            className="rounded-xl px-4 h-12 border-border"
                             onClick={() => {
                                 setStaffAction('bill_request');
                                 setShowTableModal(true);
                             }}
                         >
-                            <Receipt className="w-5 h-5 mr-2" />
+                            <Receipt className="w-5 h-5 mr-2 text-accent" />
                             <span className="hidden sm:inline">Addition</span>
                         </Button>
                     </div>
@@ -266,95 +260,106 @@ export default function CafeOrder() {
                         <SheetTrigger asChild>
                             <Button
                                 variant="accent"
-                                className="rounded-full h-12 px-6 gap-3 shadow-lg shadow-accent/20 relative"
+                                className="rounded-xl h-12 px-6 gap-3 shadow-sm relative font-bold"
                             >
-                                <div className="flex items-center gap-2">
-                                    <ShoppingCart className="w-5 h-5" />
-                                    <span className="font-bold">{cartTotal} DT</span>
-                                </div>
+                                <ShoppingCart className="w-5 h-5" />
+                                <span>Voir mon panier</span>
                                 {cartCount > 0 && (
-                                    <span className="absolute -top-1 -right-1 bg-foreground text-background text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center ring-2 ring-background">
+                                    <span className="absolute -top-2 -right-2 bg-foreground text-background text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center border-2 border-background">
                                         {cartCount}
                                     </span>
                                 )}
                             </Button>
                         </SheetTrigger>
-                        <SheetContent className="w-full sm:max-w-md flex flex-col h-full rounded-t-[2rem] sm:rounded-l-[2rem]">
+                        <SheetContent className="w-full sm:max-w-md flex flex-col h-full rounded-t-3xl sm:rounded-l-3xl">
                             <SheetHeader className="pb-4 border-b">
-                                <SheetTitle className="flex justify-between items-center text-xl font-bold font-display px-2">
-                                    <span>Votre Panier ({cartCount})</span>
+                                <SheetTitle className="text-xl font-bold font-display px-2">
+                                    Mon Panier ({cartTotal} DT)
                                 </SheetTitle>
                             </SheetHeader>
 
-                            <div className="flex-grow overflow-y-auto py-4 space-y-4">
+                            <div className="flex-grow overflow-y-auto py-8 space-y-6 no-scrollbar px-2">
                                 {cart.map((item) => (
-                                    <div key={item.id} className="flex gap-3 px-2">
-                                        {item.image && (
-                                            <div className="w-16 h-16 rounded-lg overflow-hidden flex-shrink-0 bg-muted">
+                                    <motion.div
+                                        layout
+                                        initial={{ opacity: 0, x: 20 }}
+                                        animate={{ opacity: 1, x: 0 }}
+                                        key={item.id}
+                                        className="flex gap-4 p-4 rounded-3xl bg-muted/30 border border-border/10 group"
+                                    >
+                                        <div className="w-20 h-20 rounded-2xl overflow-hidden flex-shrink-0 bg-muted relative">
+                                            {item.image ? (
                                                 <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
-                                            </div>
-                                        )}
-                                        <div className="flex-grow">
-                                            <div className="flex justify-between items-start">
-                                                <h4 className="font-bold text-sm text-foreground line-clamp-1">{item.name}</h4>
-                                                <button
-                                                    className="p-1 text-muted-foreground hover:text-destructive"
-                                                    onClick={() => removeFromCart(item.id)}
-                                                >
-                                                    <Trash2 className="w-4 h-4" />
-                                                </button>
-                                            </div>
-                                            <div className="flex items-center justify-between mt-2">
-                                                <span className="text-accent font-bold text-sm">{item.price} DT</span>
-                                                <div className="flex items-center gap-2 bg-muted/50 rounded-full p-1">
+                                            ) : (
+                                                <div className="w-full h-full flex items-center justify-center text-muted-foreground/20">
+                                                    <UtensilsCrossed className="w-8 h-8" />
+                                                </div>
+                                            )}
+                                        </div>
+                                        <div className="flex-grow flex flex-col justify-between py-1">
+                                            <div>
+                                                <div className="flex justify-between items-start">
+                                                    <h4 className="font-bold text-lg text-foreground line-clamp-1">{item.name}</h4>
                                                     <Button
                                                         variant="ghost"
                                                         size="icon"
-                                                        className="h-6 w-6 rounded-full"
-                                                        onClick={() => updateQuantity(item.id, -1)}
+                                                        className="h-8 w-8 rounded-xl text-muted-foreground hover:text-destructive hover:bg-destructive/10 -mt-2 -mr-2"
+                                                        onClick={() => removeFromCart(item.id)}
                                                     >
-                                                        <Minus className="w-3 h-3" />
+                                                        <Trash2 className="w-4 h-4" />
                                                     </Button>
-                                                    <span className="font-bold text-xs w-4 text-center">{item.quantity}</span>
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="icon"
-                                                        className="h-6 w-6 rounded-full"
+                                                </div>
+                                                <span className="text-accent font-black text-lg">{item.price} DT</span>
+                                            </div>
+
+                                            <div className="flex items-center justify-end mt-2">
+                                                <div className="flex items-center gap-4 bg-background px-4 py-2 rounded-2xl border border-border/40">
+                                                    <button
+                                                        className="text-muted-foreground hover:text-accent transition-colors disabled:opacity-20"
+                                                        onClick={() => updateQuantity(item.id, -1)}
+                                                        disabled={item.quantity <= 1}
+                                                    >
+                                                        <Minus className="w-4 h-4" />
+                                                    </button>
+                                                    <span className="font-black text-sm w-6 text-center">{item.quantity}</span>
+                                                    <button
+                                                        className="text-muted-foreground hover:text-accent transition-colors"
                                                         onClick={() => updateQuantity(item.id, 1)}
                                                     >
-                                                        <Plus className="w-3 h-3" />
-                                                    </Button>
+                                                        <Plus className="w-4 h-4" />
+                                                    </button>
                                                 </div>
                                             </div>
                                         </div>
-                                    </div>
+                                    </motion.div>
                                 ))}
 
                                 {cart.length === 0 && (
-                                    <div className="text-center py-20">
-                                        <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mx-auto mb-4">
-                                            <ShoppingCart className="w-8 h-8 text-muted-foreground/30" />
+                                    <div className="text-center py-32 flex flex-col items-center">
+                                        <div className="w-24 h-24 bg-muted/50 rounded-full flex items-center justify-center mb-6">
+                                            <ShoppingCart className="w-12 h-12 text-muted-foreground/20" />
                                         </div>
-                                        <p className="text-muted-foreground font-medium">Votre panier est vide</p>
-                                        <p className="text-xs text-muted-foreground mt-1">Ajoutez des délices pour commencer</p>
+                                        <p className="text-xl font-bold text-foreground">Votre panier est vide</p>
+                                        <p className="text-muted-foreground mt-2 max-w-[200px] text-center">Ajoutez des délices de notre carte pour commencer.</p>
                                     </div>
                                 )}
                             </div>
 
                             {cart.length > 0 && (
-                                <SheetFooter className="flex-col gap-4 mt-auto pt-4 border-t !inline-block w-full">
-                                    <div className="flex justify-between items-center text-lg font-bold px-2 py-2">
-                                        <span>Total</span>
-                                        <span className="text-accent text-xl">{cartTotal} DT</span>
+                                <SheetFooter className="p-8 bg-background border-t border-border/40 !flex flex-col gap-6 w-full mt-auto">
+                                    <div className="flex justify-between items-center text-xl font-black">
+                                        <span className="text-muted-foreground text-sm uppercase tracking-widest">Total à payer</span>
+                                        <span className="text-accent text-3xl font-black">{cartTotal} DT</span>
                                     </div>
                                     <Button
-                                        className="w-full h-14 rounded-2xl text-lg font-bold gap-3 shadow-xl"
+                                        className="w-full h-16 rounded-[1.5rem] text-xl font-black gap-4 shadow-2xl shadow-accent/30 group py-4"
                                         variant="accent"
                                         onClick={() => {
                                             setStaffAction(null);
                                             setShowTableModal(true);
                                         }}
                                     >
+                                        <Send className="w-6 h-6 group-hover:translate-x-1 group-hover:-translate-y-1 transition-transform" />
                                         Finaliser Commande
                                     </Button>
                                 </SheetFooter>
@@ -372,55 +377,62 @@ export default function CafeOrder() {
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             exit={{ opacity: 0 }}
-                            className="absolute inset-0 bg-background/80 backdrop-blur-sm"
+                            className="absolute inset-0 bg-background/40 backdrop-blur-md"
                             onClick={() => setShowTableModal(false)}
                         />
                         <motion.div
                             initial={{ opacity: 0, scale: 0.9, y: 20 }}
                             animate={{ opacity: 1, scale: 1, y: 0 }}
                             exit={{ opacity: 0, scale: 0.9, y: 20 }}
-                            className="relative bg-card border border-border w-full max-w-sm rounded-[2rem] p-8 shadow-2xl"
+                            className="relative bg-card border border-border/40 w-full max-w-sm rounded-[3rem] p-10 shadow-2xl"
                         >
-                            <button
-                                className="absolute top-6 right-6 p-2 text-muted-foreground"
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className="absolute top-6 right-6 p-2 text-muted-foreground rounded-2xl hover:bg-muted"
                                 onClick={() => setShowTableModal(false)}
                             >
                                 <X className="w-5 h-5" />
-                            </button>
-                            <div className="text-center mb-8">
-                                <div className="w-16 h-16 bg-accent/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                                    {staffAction === 'waiter_call' ? <BellRing className="w-8 h-8 text-accent" /> :
-                                        staffAction === 'bill_request' ? <Receipt className="w-8 h-8 text-accent" /> :
-                                            <ShoppingCart className="w-8 h-8 text-accent" />}
+                            </Button>
+                            <div className="text-center mb-10">
+                                <div className="w-20 h-20 bg-accent/10 rounded-[2rem] flex items-center justify-center mx-auto mb-6 shadow-inner">
+                                    {staffAction === 'waiter_call' ? <BellRing className="w-10 h-10 text-accent animate-bounce" /> :
+                                        staffAction === 'bill_request' ? <Receipt className="w-10 h-10 text-accent" /> :
+                                            <ShoppingCart className="w-10 h-10 text-accent" />}
                                 </div>
-                                <h2 className="text-2xl font-bold">Numéro de Table</h2>
-                                <p className="text-sm text-muted-foreground mt-1">
-                                    {staffAction === 'waiter_call' ? "Dites-nous où vous vous trouvez pour vous aider." :
-                                        staffAction === 'bill_request' ? "Dites-nous votre numéro de table pour l'addition." :
-                                            "Saisissez votre numéro de table pour envoyer la commande."}
+                                <h2 className="text-3xl font-black font-display text-foreground">Votre Table</h2>
+                                <p className="text-muted-foreground mt-3 text-sm leading-relaxed">
+                                    {staffAction === 'waiter_call' ? "Un équipier arrive pour vous assister." :
+                                        staffAction === 'bill_request' ? "Nous préparons votre addition." :
+                                            "Dernière étape avant la dégustation !"}
                                 </p>
                             </div>
 
-                            <div className="space-y-6">
-                                <Input
-                                    autoFocus
-                                    placeholder="Ex: 5"
-                                    value={tableNumber}
-                                    onChange={(e) => setTableNumber(e.target.value)}
-                                    className="h-14 text-center text-xl font-bold rounded-2xl border-accent/20 focus-visible:ring-accent"
-                                />
+                            <div className="space-y-8">
+                                <div className="relative group">
+                                    <Input
+                                        autoFocus
+                                        placeholder="N° de table"
+                                        value={tableNumber}
+                                        onChange={(e) => setTableNumber(e.target.value)}
+                                        className="h-20 text-center text-4xl font-black rounded-3xl border-border/40 focus-visible:ring-accent bg-muted/30 border-2 transition-all duration-300 focus:border-accent group-hover:border-accent/20"
+                                    />
+                                    <div className="absolute inset-0 rounded-3xl pointer-events-none group-focus-within:ring-4 ring-accent/10 transition-all duration-300" />
+                                </div>
                                 <Button
-                                    className="w-full h-14 rounded-2xl text-lg font-bold gap-3"
+                                    className="w-full h-16 rounded-[1.5rem] text-xl font-black gap-4 shadow-2xl shadow-accent/20 transition-all duration-300 hover:shadow-accent/40 active:scale-95 py-4"
                                     variant="accent"
                                     onClick={handleAction}
                                     disabled={orderMutation.isPending || staffMutation.isPending}
                                 >
                                     {(orderMutation.isPending || staffMutation.isPending) ? (
-                                        <Loader2 className="w-5 h-5 animate-spin" />
+                                        <Loader2 className="w-6 h-6 animate-spin" />
                                     ) : (
-                                        <Send className="w-5 h-5" />
+                                        <div className="flex items-center gap-3">
+                                            <span>Confirmer</span>
+                                            <Send className="w-5 h-5" />
+                                        </div>
                                     )}
-                                    Confirmer
                                 </Button>
                             </div>
                         </motion.div>

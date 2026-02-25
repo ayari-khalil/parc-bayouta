@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Plus, Edit, Trash2, Eye, Search, Calendar, Users, Ticket, Star, StarOff, Loader2 } from "lucide-react";
+import { Plus, Edit, Trash2, Search, Calendar, Users, Ticket, Star, StarOff, Loader2, ImageIcon, X } from "lucide-react";
 import { AdminLayout } from "@/components/layout/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -76,6 +76,7 @@ export default function AdminEvents() {
     title: "",
     description: "",
     longDescription: "",
+    image: "",
     date: "",
     time: "",
     endTime: "",
@@ -86,6 +87,29 @@ export default function AdminEvents() {
     isActive: true,
     isFeatured: false
   });
+  const [imageUploading, setImageUploading] = useState(false);
+
+  const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+
+  const uploadImage = async (file: File): Promise<string | null> => {
+    const formData = new FormData();
+    formData.append('image', file);
+    try {
+      setImageUploading(true);
+      const res = await fetch(`${API_URL}/api/upload`, {
+        method: 'POST',
+        body: formData,
+      });
+      if (!res.ok) throw new Error('Upload failed');
+      const data = await res.json();
+      return `${API_URL}${data.url}`;
+    } catch (e) {
+      toast({ title: 'Erreur', description: "Impossible de télécharger l'image.", variant: 'destructive' });
+      return null;
+    } finally {
+      setImageUploading(false);
+    }
+  };
 
   // View reservations dialog
   const [viewingEvent, setViewingEvent] = useState<Event | null>(null);
@@ -135,6 +159,7 @@ export default function AdminEvents() {
         title: event.title,
         description: event.description,
         longDescription: event.longDescription || "",
+        image: event.image || "",
         date: event.date,
         time: event.time,
         endTime: event.endTime || "",
@@ -151,6 +176,7 @@ export default function AdminEvents() {
         title: "",
         description: "",
         longDescription: "",
+        image: "",
         date: "",
         time: "",
         endTime: "",
@@ -383,6 +409,13 @@ export default function AdminEvents() {
                     <TableRow key={event._id || event.id}>
                       <TableCell>
                         <div className="flex items-center gap-3">
+                          {event.image ? (
+                            <img src={event.image} alt={event.title} className="w-10 h-10 rounded-lg object-cover flex-shrink-0" />
+                          ) : (
+                            <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center flex-shrink-0">
+                              <ImageIcon className="w-5 h-5 text-muted-foreground" />
+                            </div>
+                          )}
                           {event.isFeatured && (
                             <Star className="w-4 h-4 text-amber-500 fill-amber-500" />
                           )}
@@ -485,6 +518,54 @@ export default function AdminEvents() {
             </DialogHeader>
             <div className="grid gap-4 py-4">
               <div className="grid grid-cols-2 gap-4">
+                {/* Image Upload */}
+                <div className="col-span-2 space-y-2">
+                  <Label>Image de l'événement</Label>
+                  <div className="flex items-center gap-4">
+                    <div className="relative w-32 h-24 rounded-xl overflow-hidden bg-muted flex items-center justify-center border border-border flex-shrink-0">
+                      {eventForm.image ? (
+                        <>
+                          <img src={eventForm.image} alt="Preview" className="w-full h-full object-cover" />
+                          <button
+                            type="button"
+                            onClick={() => setEventForm({ ...eventForm, image: '' })}
+                            className="absolute top-1 right-1 w-5 h-5 rounded-full bg-destructive text-white flex items-center justify-center hover:bg-destructive/90"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </>
+                      ) : (
+                        <ImageIcon className="w-8 h-8 text-muted-foreground" />
+                      )}
+                    </div>
+                    <div className="flex-1">
+                      <label className="cursor-pointer">
+                        <div className="flex items-center gap-2 px-4 py-2 rounded-lg border border-dashed border-border hover:border-primary hover:bg-primary/5 transition-colors">
+                          {imageUploading ? (
+                            <><Loader2 className="w-4 h-4 animate-spin" /> Chargement...</>
+                          ) : (
+                            <><ImageIcon className="w-4 h-4" /> Choisir une image</>
+                          )}
+                        </div>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          disabled={imageUploading}
+                          onChange={async (e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              const url = await uploadImage(file);
+                              if (url) setEventForm({ ...eventForm, image: url });
+                            }
+                          }}
+                        />
+                      </label>
+                      <p className="text-xs text-muted-foreground mt-1">JPEG, PNG, WebP. Max 5MB.</p>
+                    </div>
+                  </div>
+                </div>
+
                 <div className="col-span-2 space-y-2">
                   <Label>Titre</Label>
                   <Input

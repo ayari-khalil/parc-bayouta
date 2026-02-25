@@ -38,17 +38,40 @@ import {
 import { reservationApi, HallReservation } from "@/lib/api/reservation";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, addMonths, getDay } from "date-fns";
 import { fr } from "date-fns/locale";
+import { useAuth } from "@/contexts/AuthContext";
+import { auditApi } from "@/api/auditApi";
+
+const eventTypes = [
+  "Mariage",
+  "Fiançailles",
+  "Anniversaire",
+  "Baptême",
+  "Réunion d'entreprise",
+  "Autre",
+];
 
 export default function AdminEventHall() {
   const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [statusFilter, setStatusFilter] = useState<string>("pending");
   const [selectedMonth, setSelectedMonth] = useState(new Date());
   const [realHallReservations, setRealHallReservations] = useState<HallReservation[]>([]);
   const [selectedReservation, setSelectedReservation] = useState<HallReservation | null>(null);
   const [showBlockDialog, setShowBlockDialog] = useState(false);
+  const [showBookingDialog, setShowBookingDialog] = useState(false);
   const [blockDate, setBlockDate] = useState("");
   const [blockReason, setBlockReason] = useState("");
+
+  const [bookingForm, setBookingForm] = useState({
+    customerName: "",
+    customerPhone: "",
+    eventType: "",
+    guestCount: "",
+    message: ""
+  });
+  const [bookingDate, setBookingDate] = useState<Date | null>(null);
+
+  const { user } = useAuth();
 
   const lastResCount = useRef(0);
   const notificationSound = useRef<HTMLAudioElement | null>(null);
@@ -157,6 +180,13 @@ export default function AdminEventHall() {
         status: 'blocked'
       });
 
+      await auditApi.recordLog({
+        admin: user?.username || "Admin",
+        action: "BLOCAGE_DATE",
+        category: "Réservations Salle",
+        details: `Blocage de la date du ${format(new Date(blockDate), 'dd/MM/yyyy')}`
+      });
+
       fetchHallReservations();
       toast({
         title: "Date bloquée",
@@ -169,6 +199,45 @@ export default function AdminEventHall() {
       toast({
         title: "Erreur",
         description: "Impossible de bloquer la date.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleCreateReservation = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!bookingDate) return;
+
+    try {
+      await reservationApi.createHallReservation({
+        date: bookingDate.toISOString(),
+        customerName: bookingForm.customerName,
+        customerPhone: bookingForm.customerPhone,
+        eventType: bookingForm.eventType,
+        guestCount: parseInt(bookingForm.guestCount) || 0,
+        message: bookingForm.message,
+        status: 'confirmed'
+      });
+
+      await auditApi.recordLog({
+        admin: user?.username || "Admin",
+        action: "RESERVATION_DIRECTE",
+        category: "Réservations Salle",
+        details: `Nouvelle réservation directe pour ${bookingForm.customerName} le ${format(bookingDate, 'dd/MM/yyyy')}`
+      });
+
+      fetchHallReservations();
+      toast({
+        title: "Réservation créée",
+        description: "La réservation a été créée et confirmée avec succès.",
+      });
+      setShowBookingDialog(false);
+      setBookingForm({ customerName: "", customerPhone: "", eventType: "", guestCount: "", message: "" });
+      setBookingDate(null);
+    } catch (error) {
+      toast({
+        title: "Erreur",
+        description: "Impossible de créer la réservation.",
         variant: "destructive",
       });
     }
@@ -294,8 +363,15 @@ export default function AdminEventHall() {
                     <div
                       key={day.toISOString()}
                       className={`aspect-square p-1 border border-border rounded-lg cursor-pointer transition-colors ${isTodayRes ? 'ring-2 ring-primary' : ''
-                        } ${reservation ? 'hover:bg-muted/50' : 'hover:bg-muted/30'}`}
-                      onClick={() => reservation && setSelectedReservation(reservation)}
+                        } ${reservation ? 'hover:bg-muted/50' : 'hover:bg-primary/10'}`}
+                      onClick={() => {
+                        if (reservation) {
+                          setSelectedReservation(reservation);
+                        } else {
+                          setBookingDate(day);
+                          setShowBookingDialog(true);
+                        }
+                      }}
                     >
                       <div className="text-xs font-medium mb-1">{format(day, 'd')}</div>
                       {reservation && (
@@ -539,6 +615,7 @@ export default function AdminEventHall() {
 
         {/* Block Date Dialog */}
         <Dialog open={showBlockDialog} onOpenChange={setShowBlockDialog}>
+          {/* ... existing Block Dialog Content ... */}
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Bloquer une date</DialogTitle>
@@ -573,6 +650,95 @@ export default function AdminEventHall() {
                 Bloquer
               </Button>
             </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Create Reservation Dialog */}
+        <Dialog open={showBookingDialog} onOpenChange={setShowBookingDialog}>
+          <DialogContent className="max-w-lg">
+            <DialogHeader>
+              <DialogTitle>Nouvelle Réservation</DialogTitle>
+              <DialogDescription>
+                Créer une réservation directement dans le système. Elle sera confirmée par défaut.
+              </DialogDescription>
+            </DialogHeader>
+            <form onSubmit={handleCreateReservation} className="space-y-4">
+              <div className="p-3 bg-primary/5 rounded-lg border border-primary/10">
+                <Label className="text-muted-foreground text-xs uppercase">Date sélectionnée</Label>
+                <p className="font-semibold text-primary capitalize">
+                  {bookingDate && format(bookingDate, "EEEE d MMMM yyyy", { locale: fr })}
+                </p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Nom du client *</Label>
+                  <Input
+                    required
+                    placeholder="Nom complet"
+                    value={bookingForm.customerName}
+                    onChange={(e) => setBookingForm({ ...bookingForm, customerName: e.target.value })}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Téléphone *</Label>
+                  <Input
+                    required
+                    placeholder="22 123 456"
+                    value={bookingForm.customerPhone}
+                    onChange={(e) => setBookingForm({ ...bookingForm, customerPhone: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Type d'événement *</Label>
+                  <Select
+                    required
+                    value={bookingForm.eventType}
+                    onValueChange={(v) => setBookingForm({ ...bookingForm, eventType: v })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Sélectionnez..." />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {eventTypes.map((type) => (
+                        <SelectItem key={type} value={type}>{type}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Nombre d'invités</Label>
+                  <Input
+                    type="number"
+                    placeholder="100"
+                    value={bookingForm.guestCount}
+                    onChange={(e) => setBookingForm({ ...bookingForm, guestCount: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label>Notes (optionnel)</Label>
+                <Textarea
+                  placeholder="Notes ou demandes spéciales..."
+                  value={bookingForm.message}
+                  onChange={(e) => setBookingForm({ ...bookingForm, message: e.target.value })}
+                  rows={2}
+                />
+              </div>
+
+              <DialogFooter className="pt-4">
+                <Button type="button" variant="outline" onClick={() => setShowBookingDialog(false)}>
+                  Annuler
+                </Button>
+                <Button type="submit">
+                  Confirmer la réservation
+                </Button>
+              </DialogFooter>
+            </form>
           </DialogContent>
         </Dialog>
       </div>

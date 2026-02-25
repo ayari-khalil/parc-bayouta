@@ -1,11 +1,13 @@
 import { useState, useEffect, useRef } from "react";
+import * as XLSX from "xlsx";
 import { AdminLayout } from "@/components/layout/AdminLayout";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
     ShoppingBag, BellRing, Receipt, CheckCircle2,
     Clock, XCircle, Loader2, Volume2, VolumeX,
-    Check, Trash2
+    Check, Trash2, Download, TrendingUp
 } from "lucide-react";
+import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -19,6 +21,7 @@ export default function AdminOrders() {
     const queryClient = useQueryClient();
     const [isAudioEnabled, setIsAudioEnabled] = useState(false);
     const notificationSound = useRef<HTMLAudioElement | null>(null);
+    const [exportDate, setExportDate] = useState(format(new Date(), 'yyyy-MM-dd'));
 
     const lastOrderCount = useRef(0);
     const lastNotifCount = useRef(0);
@@ -102,6 +105,62 @@ export default function AdminOrders() {
         }
     };
 
+    const exportToExcel = () => {
+        const dateStr = exportDate;
+        const dayOrders = orders.filter(o => {
+            const orderDate = format(new Date(o.createdAt!), 'yyyy-MM-dd');
+            return orderDate === dateStr && o.status === 'completed';
+        });
+
+        if (dayOrders.length === 0) {
+            toast.warning(`Aucune commande payée le ${format(new Date(dateStr + 'T00:00:00'), 'dd/MM/yyyy', { locale: fr })}`);
+            return;
+        }
+
+        const totalRevenue = dayOrders.reduce((sum, o) => sum + (o.totalAmount || 0), 0);
+        const dateLabel = format(new Date(dateStr + 'T00:00:00'), 'dd MMMM yyyy', { locale: fr });
+
+        // Build rows for the sheet
+        const sheetData: (string | number)[][] = [
+            ['Chiffre d\'Affaires — Parc Bayouta'],
+            [`Date : ${dateLabel}`],
+            [],
+            ['#', 'Table', 'Heure', 'Articles commandés', 'Total (DT)'],
+        ];
+
+        dayOrders.forEach((o, i) => {
+            const articles = o.items.map(it => `${it.quantity}x ${it.name}`).join(' | ');
+            sheetData.push([
+                i + 1,
+                o.tableNumber,
+                format(new Date(o.createdAt!), 'HH:mm', { locale: fr }),
+                articles,
+                o.totalAmount,
+            ]);
+        });
+
+        sheetData.push([]);
+        sheetData.push(['', '', '', 'TOTAL CHIFFRE D\'AFFAIRES', totalRevenue]);
+        sheetData.push([`Nombre de commandes payées : ${dayOrders.length}`]);
+
+        const ws = XLSX.utils.aoa_to_sheet(sheetData);
+
+        // Column widths
+        ws['!cols'] = [
+            { wch: 5 },   // #
+            { wch: 8 },   // Table
+            { wch: 8 },   // Heure
+            { wch: 60 },  // Articles
+            { wch: 14 },  // Total
+        ];
+
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, `CA ${dateStr}`);
+        XLSX.writeFile(wb, `CA_Parc_Bayouta_${dateStr}.xlsx`);
+
+        toast.success(`Export Excel réussi — ${dayOrders.length} commande(s) — Total: ${totalRevenue} DT`);
+    };
+
     return (
         <AdminLayout>
             <div className="space-y-6">
@@ -144,6 +203,45 @@ export default function AdminOrders() {
                     </TabsList>
 
                     <TabsContent value="orders" className="mt-6">
+                        {/* Daily Revenue Export Bar */}
+                        <div className="mb-6 p-4 bg-card border border-border rounded-2xl flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                            <div className="flex items-center gap-2 text-foreground">
+                                <TrendingUp className="w-5 h-5 text-primary" />
+                                <span className="font-semibold text-sm">Export chiffre d'affaires</span>
+                            </div>
+                            <div className="flex flex-1 items-center gap-3 flex-wrap">
+                                <Input
+                                    type="date"
+                                    value={exportDate}
+                                    onChange={e => setExportDate(e.target.value)}
+                                    className="w-44"
+                                />
+                                {/* Daily revenue preview */}
+                                {(() => {
+                                    const dayTotal = orders
+                                        .filter(o => format(new Date(o.createdAt!), 'yyyy-MM-dd') === exportDate && o.status === 'completed')
+                                        .reduce((sum, o) => sum + (o.totalAmount || 0), 0);
+                                    const dayCount = orders.filter(o => format(new Date(o.createdAt!), 'yyyy-MM-dd') === exportDate && o.status === 'completed').length;
+                                    return dayCount > 0 ? (
+                                        <span className="text-sm font-bold text-green-600 bg-green-50 dark:bg-green-900/30 px-3 py-1.5 rounded-lg">
+                                            {dayCount} commande{dayCount > 1 ? 's' : ''} &nbsp;·&nbsp; {dayTotal} DT
+                                        </span>
+                                    ) : (
+                                        <span className="text-sm text-muted-foreground">Aucune commande payée ce jour</span>
+                                    );
+                                })()}
+                            </div>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                className="gap-2 shrink-0"
+                                onClick={exportToExcel}
+                            >
+                                <Download className="w-4 h-4" />
+                                Exporter Excel
+                            </Button>
+                        </div>
+
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                             {ordersLoading ? (
                                 <div className="col-span-full py-20 flex justify-center"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>

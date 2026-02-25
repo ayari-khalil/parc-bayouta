@@ -168,7 +168,7 @@ export default function AdminMenu() {
       });
 
       setShowItemDialog(false);
-      setItemForm({ name: "", price: "", description: "", category: "", isActive: true });
+      setItemForm({ name: "", price: "", description: "", category: "", isActive: true, image: "" });
     },
     onError: () => {
       toast({ title: "Erreur", description: "Impossible de créer l'article.", variant: "destructive" });
@@ -252,7 +252,8 @@ export default function AdminMenu() {
         price: item.price.toString(),
         description: item.description || "",
         category: catId,
-        isActive: item.isActive
+        isActive: item.isActive,
+        image: item.image || ""
       });
     } else {
       setEditingItem(null);

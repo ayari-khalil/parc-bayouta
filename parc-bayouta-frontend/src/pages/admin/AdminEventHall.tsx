@@ -114,9 +114,17 @@ export default function AdminEventHall() {
   const startDayOfWeek = getDay(monthStart);
   const paddingDays = startDayOfWeek === 0 ? 6 : startDayOfWeek - 1;
 
-  const hallColors: Record<number, { bg: string, text: string, border: string, icon: any }> = {
-    0: { bg: 'bg-amber-100', text: 'text-amber-800', border: 'border-amber-200', icon: Building2 },
-    1: { bg: 'bg-indigo-100', text: 'text-indigo-800', border: 'border-indigo-200', icon: Castle },
+  const getStatusColors = (status: string) => {
+    switch (status) {
+      case 'confirmed':
+        return { bg: 'bg-emerald-100', text: 'text-emerald-800', border: 'border-emerald-200' };
+      case 'pending':
+        return { bg: 'bg-amber-100', text: 'text-amber-800', border: 'border-amber-200' };
+      case 'blocked':
+        return { bg: 'bg-destructive/10', text: 'text-destructive', border: 'border-destructive/20' };
+      default:
+        return { bg: 'bg-gray-100', text: 'text-gray-800', border: 'border-gray-200' };
+    }
   };
 
   const getAllReservationsForDate = (date: Date) => {
@@ -335,11 +343,11 @@ export default function AdminEventHall() {
                         {reservations.map((res, idx) => {
                           const hallId = typeof res.hall === 'string' ? res.hall : res.hall?.id || (res.hall as any)?._id;
                           const hallIndex = halls.findIndex(h => (h.id === hallId || h._id === hallId));
+                          const hallNumber = hallIndex !== -1 ? hallIndex + 1 : idx + 1;
+
+                          const colors = getStatusColors(res.status);
                           const isBlocked = res.status === 'blocked';
-                          const colors = isBlocked
-                            ? { bg: 'bg-destructive/10', text: 'text-destructive', border: 'border-destructive/20', icon: Ban }
-                            : hallColors[hallIndex] || { bg: 'bg-gray-100', text: 'text-gray-800', border: 'border-gray-200', icon: PartyPopper };
-                          const Icon = colors.icon;
+                          const Icon = isBlocked ? Ban : (hallIndex === 0 ? Building2 : Castle);
 
                           return (
                             <div
@@ -351,7 +359,10 @@ export default function AdminEventHall() {
                               className={`text-[10px] p-1 rounded-md border ${colors.bg} ${colors.text} ${colors.border} flex items-center gap-1 truncate shadow-sm hover:scale-105 transition-transform ${isBlocked ? 'font-bold' : ''}`}
                               title={`${typeof res.hall === 'object' ? res.hall.name : 'Salle'}: ${isBlocked ? 'BLOQUÉ' : res.eventType}`}
                             >
-                              <Icon className="w-2.5 h-2.5 flex-shrink-0" />
+                              <div className="flex items-center gap-0.5 shrink-0">
+                                <span className="font-bold text-[9px]">{hallNumber}</span>
+                                <Icon className="w-2.5 h-2.5" />
+                              </div>
                               <span className="truncate">{isBlocked ? 'BLOQUÉ' : res.eventType}</span>
                             </div>
                           );

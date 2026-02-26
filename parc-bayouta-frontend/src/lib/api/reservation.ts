@@ -1,8 +1,16 @@
 const API_URL = 'http://localhost:5000/api';
 
+export interface Hall {
+    id: string;
+    _id?: string;
+    name: string;
+    status: 'active' | 'maintenance';
+}
+
 export interface HallReservation {
     id?: string;
     _id?: string;
+    hall: string | Hall;
     date: string;
     customerName: string;
     customerPhone: string;
@@ -46,10 +54,19 @@ export const reservationApi = {
         return response.json();
     },
 
-    getAllHallReservations: async (): Promise<HallReservation[]> => {
-        const response = await fetch(`${API_URL}/hall-reservations`);
+    getAllHallReservations: async (hallId?: string): Promise<HallReservation[]> => {
+        const url = hallId ? `${API_URL}/hall-reservations?hall=${hallId}` : `${API_URL}/hall-reservations`;
+        const response = await fetch(url);
         if (!response.ok) {
             throw new Error('Failed to fetch reservations');
+        }
+        return response.json();
+    },
+
+    getHalls: async (): Promise<Hall[]> => {
+        const response = await fetch(`${API_URL}/hall-reservations/halls`);
+        if (!response.ok) {
+            throw new Error('Failed to fetch halls');
         }
         return response.json();
     },

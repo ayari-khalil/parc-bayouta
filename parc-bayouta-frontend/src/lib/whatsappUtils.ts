@@ -3,7 +3,7 @@
  * Uses the official wa.me link format.
  */
 export const sendWhatsAppMessage = (details: {
-    type: 'Mini-Foot' | 'Salle des Fêtes' | 'Événement';
+    type: 'Mini-Foot' | 'Salle des Fêtes' | 'Événement' | string;
     title?: string;
     field?: string;
     name: string;

@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { format, addMonths, startOfMonth, endOfMonth, eachDayOfInterval, isToday, isBefore, getDay } from "date-fns";
 import { fr } from "date-fns/locale";
 import { PublicLayout } from "@/components/layout/PublicLayout";
-import { reservationApi, HallReservation } from "@/lib/api/reservation";
+import { reservationApi, HallReservation, Hall } from "@/lib/api/reservation";
 import { useToast } from "@/hooks/use-toast";
 import { sendWhatsAppMessage } from "@/lib/whatsappUtils";
 import salle5 from "@/assets/gallery/salle/salle-1.jpg";
@@ -13,7 +13,7 @@ import salle2 from "@/assets/gallery/salle/salle-2.jpg";
 import salle3 from "@/assets/gallery/salle/salle-3.jpg";
 import salle4 from "@/assets/gallery/salle/salle-4.jpg";
 import salle1 from "@/assets/gallery/salle/salle-5.jpg";
-import { Maximize2, X as CloseIcon } from "lucide-react";
+import { Maximize2, X as CloseIcon, Building2, Castle } from "lucide-react";
 
 const galleryImages = [
   { src: salle1, alt: "Salle des fêtes - Vue d'ensemble" },
@@ -36,6 +36,8 @@ export default function EventHall() {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [showForm, setShowForm] = useState(false);
+  const [halls, setHalls] = useState<Hall[]>([]);
+  const [selectedHall, setSelectedHall] = useState<string | null>(null);
   const [existingReservations, setExistingReservations] = useState<HallReservation[]>([]);
   const [formData, setFormData] = useState({
     name: "",
@@ -49,12 +51,29 @@ export default function EventHall() {
   const { toast } = useToast();
 
   useEffect(() => {
-    fetchReservations();
+    const initializeHalls = async () => {
+      try {
+        const hallData = await reservationApi.getHalls();
+        setHalls(hallData);
+        if (hallData.length > 0) {
+          setSelectedHall(hallData[0].id || hallData[0]._id!);
+        }
+      } catch (error) {
+        console.error("Failed to fetch halls:", error);
+      }
+    };
+    initializeHalls();
   }, []);
 
-  const fetchReservations = async () => {
+  useEffect(() => {
+    if (selectedHall) {
+      fetchReservations(selectedHall);
+    }
+  }, [selectedHall]);
+
+  const fetchReservations = async (hallId: string) => {
     try {
-      const data = await reservationApi.getAllHallReservations();
+      const data = await reservationApi.getAllHallReservations(hallId);
       setExistingReservations(data);
     } catch (error) {
       console.error("Failed to fetch reservations:", error);
@@ -90,6 +109,7 @@ export default function EventHall() {
 
     try {
       await reservationApi.createHallReservation({
+        hall: selectedHall!,
         date: selectedDate.toISOString(),
         customerName: formData.name,
         customerPhone: formData.phone,
@@ -105,7 +125,7 @@ export default function EventHall() {
 
       // Send WhatsApp Notification to Admin
       sendWhatsAppMessage({
-        type: 'Salle des Fêtes',
+        type: `Salle des Fêtes - ${halls.find(h => (h.id === selectedHall || h._id === selectedHall))?.name || ''}`,
         name: formData.name,
         phone: formData.phone,
         date: format(selectedDate, "dd/MM/yyyy"),
@@ -116,7 +136,7 @@ export default function EventHall() {
       setShowForm(false);
       setSelectedDate(null);
       setFormData({ name: "", phone: "", eventType: "", guests: "", message: "" });
-      fetchReservations();
+      fetchReservations(selectedHall!);
     } catch (error) {
       toast({
         title: "Erreur",
@@ -155,6 +175,47 @@ export default function EventHall() {
             <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
               Un espace élégant et modulable pour tous vos événements importants
             </p>
+
+            {/* Hall Selection Tabs */}
+            <div className="flex justify-center mt-12 mb-8">
+              <div className="inline-flex p-1.5 bg-background/50 backdrop-blur-md rounded-2xl border border-secondary/20 shadow-xl overflow-hidden">
+                {halls.map((hall, index) => {
+                  const hallId = hall.id || hall._id;
+                  const isActive = selectedHall === hallId;
+                  const Icon = index === 0 ? Building2 : Castle;
+
+                  return (
+                    <Button
+                      key={hallId}
+                      variant="ghost"
+                      className={`relative rounded-xl px-10 h-14 font-bold transition-all duration-500 overflow-hidden group ${isActive
+                          ? "text-warm-foreground shadow-inner"
+                          : "text-muted-foreground hover:text-foreground"
+                        }`}
+                      onClick={() => {
+                        setSelectedHall(hallId!);
+                        setSelectedDate(null);
+                      }}
+                    >
+                      {isActive && (
+                        <motion.div
+                          layoutId="activeHall"
+                          className="absolute inset-0 bg-warm shadow-warm/20"
+                          transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                        />
+                      )}
+                      <div className="relative flex items-center gap-3 z-10">
+                        <Icon className={`w-5 h-5 transition-transform duration-500 group-hover:scale-110 ${isActive ? 'animate-pulse' : ''}`} />
+                        <span className="tracking-wide uppercase text-sm">{hall.name}</span>
+                      </div>
+
+                      {/* Decorative elements */}
+                      <div className={`absolute bottom-0 left-0 w-full h-1 transition-opacity duration-500 ${isActive ? 'bg-white/20 opacity-100' : 'bg-transparent opacity-0'}`} />
+                    </Button>
+                  );
+                })}
+              </div>
+            </div>
           </motion.div>
         </div>
       </section>

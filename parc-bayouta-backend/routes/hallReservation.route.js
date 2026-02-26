@@ -1,7 +1,18 @@
 const express = require('express');
 const hallReservationService = require('../services/hallReservation.service');
 
+const hallService = require('../services/hall.service');
+
 const router = express.Router();
+
+router.get('/halls', async (req, res) => {
+    try {
+        const halls = await hallService.getAllHalls();
+        res.send(halls);
+    } catch (error) {
+        res.status(400).send({ message: error.message });
+    }
+});
 
 router.post('/', async (req, res) => {
     try {
@@ -14,7 +25,11 @@ router.post('/', async (req, res) => {
 
 router.get('/', async (req, res) => {
     try {
-        const reservations = await hallReservationService.getAllReservations();
+        const filter = {};
+        if (req.query.hall) {
+            filter.hall = req.query.hall;
+        }
+        const reservations = await hallReservationService.getAllReservations(filter);
         res.send(reservations);
     } catch (error) {
         res.status(400).send({ message: error.message });

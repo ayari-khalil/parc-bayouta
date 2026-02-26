@@ -16,16 +16,17 @@ const createReservation = async (reservationBody) => {
  * @returns {Promise<QueryResult>}
  */
 const queryReservations = async (filter, options) => {
-  const reservations = await HallReservation.paginate(filter, options);
+  const reservations = await HallReservation.paginate(filter, { ...options, populate: 'hall' });
   return reservations;
 };
 
 /**
  * Get all hall reservations (non-paginated)
+ * @param {Object} filter
  * @returns {Promise<Array<HallReservation>>}
  */
-const getAllReservations = async () => {
-  return HallReservation.find().sort({ date: 1 });
+const getAllReservations = async (filter = {}) => {
+  return HallReservation.find(filter).populate('hall').sort({ date: 1 });
 };
 
 /**

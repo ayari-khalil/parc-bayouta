@@ -36,7 +36,7 @@ import {
   EventReservation
 } from "@/data/mockData";
 import { eventApi, Event, EventReservation as RealEventRes } from "@/api/dashboardApi";
-import { reservationApi, HallReservation, FieldReservation } from "@/lib/api/reservation";
+import { reservationApi, HallReservation, FieldReservation, Hall } from "@/lib/api/reservation";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
 import { useAuth } from "@/contexts/AuthContext";
@@ -63,6 +63,7 @@ export default function AdminReservations() {
   const [realFieldReservations, setRealFieldReservations] = useState<FieldReservation[]>([]);
   const [selectedFieldRes, setSelectedFieldRes] = useState<FieldReservation | null>(null);
   const [realHallReservations, setRealHallReservations] = useState<HallReservation[]>([]);
+  const [halls, setHalls] = useState<Hall[]>([]);
   const [selectedHallRes, setSelectedHallRes] = useState<HallReservation | null>(null);
 
   const [realEventReservations, setRealEventReservations] = useState<RealEventRes[]>([]);
@@ -126,16 +127,18 @@ export default function AdminReservations() {
       }
 
       // Initial fetch to set baseline counts
-      const [hallData, fieldData, eventResData, eventsData] = await Promise.all([
+      const [hallData, fieldData, eventResData, eventsData, hallsData] = await Promise.all([
         reservationApi.getAllHallReservations(),
         reservationApi.getAllFieldReservations(),
         eventApi.getReservations(),
-        eventApi.getEvents()
+        eventApi.getEvents(),
+        reservationApi.getHalls()
       ]);
       setRealHallReservations(hallData);
       setRealFieldReservations(fieldData);
       setRealEventReservations(eventResData);
       setRealEvents(eventsData);
+      setHalls(hallsData);
       lastHallCount.current = hallData.length;
       lastFieldCount.current = fieldData.length;
     } catch (error) {
@@ -562,6 +565,7 @@ export default function AdminReservations() {
                     <TableHeader>
                       <TableRow>
                         <TableHead>Date</TableHead>
+                        <TableHead>Salle</TableHead>
                         <TableHead>Client</TableHead>
                         <TableHead>Type d'événement</TableHead>
                         <TableHead>Invités</TableHead>
@@ -574,6 +578,13 @@ export default function AdminReservations() {
                         <TableRow key={res.id}>
                           <TableCell>
                             {format(new Date(res.date), 'dd MMM yyyy', { locale: fr })}
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="outline">
+                              {typeof res.hall === 'string'
+                                ? (halls.find(h => h.id === res.hall || h._id === res.hall)?.name || 'Inconnue')
+                                : res.hall?.name || 'Inconnue'}
+                            </Badge>
                           </TableCell>
                           <TableCell>
                             <div>
@@ -848,6 +859,14 @@ export default function AdminReservations() {
                   <div>
                     <Label className="text-muted-foreground">Type d'événement</Label>
                     <p className="font-medium">{selectedHallRes.eventType}</p>
+                  </div>
+                  <div>
+                    <Label className="text-muted-foreground">Salle</Label>
+                    <p className="font-medium">
+                      {typeof selectedHallRes.hall === 'string'
+                        ? (halls.find(h => h.id === selectedHallRes.hall || h._id === selectedHallRes.hall)?.name || 'Inconnue')
+                        : (selectedHallRes.hall as Hall)?.name || 'Inconnue'}
+                    </p>
                   </div>
                   <div>
                     <Label className="text-muted-foreground">Nombre d'invités</Label>

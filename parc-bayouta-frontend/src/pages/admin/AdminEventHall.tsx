@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Calendar, Search, Plus, Eye, Check, X, Ban, Users, PartyPopper, Trash2 } from "lucide-react";
+import { Calendar, Search, Plus, Eye, Check, X, Ban, Users, PartyPopper, Trash2, Building2, Castle } from "lucide-react";
 import { AdminLayout } from "@/components/layout/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -35,7 +35,7 @@ import {
   getStatusColor,
   getStatusLabel
 } from "@/data/mockData";
-import { reservationApi, HallReservation } from "@/lib/api/reservation";
+import { reservationApi, HallReservation, Hall } from "@/lib/api/reservation";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, addMonths, getDay } from "date-fns";
 import { fr } from "date-fns/locale";
 
@@ -45,9 +45,12 @@ export default function AdminEventHall() {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [selectedMonth, setSelectedMonth] = useState(new Date());
   const [realHallReservations, setRealHallReservations] = useState<HallReservation[]>([]);
+  const [halls, setHalls] = useState<Hall[]>([]);
+  const [selectedHall, setSelectedHall] = useState<string>("all");
   const [selectedReservation, setSelectedReservation] = useState<HallReservation | null>(null);
   const [showBlockDialog, setShowBlockDialog] = useState(false);
   const [blockDate, setBlockDate] = useState("");
+  const [blockHall, setBlockHall] = useState("");
   const [blockReason, setBlockReason] = useState("");
 
   const lastResCount = useRef(0);
@@ -56,14 +59,28 @@ export default function AdminEventHall() {
   useEffect(() => {
     notificationSound.current = new Audio("https://assets.mixkit.co/active_storage/sfx/2358/2358-preview.mp3");
 
+    fetchHalls();
     fetchHallReservations();
     const interval = setInterval(fetchHallReservations, 5000);
     return () => clearInterval(interval);
-  }, []);
+  }, [selectedHall]);
+
+  const fetchHalls = async () => {
+    try {
+      const data = await reservationApi.getHalls();
+      setHalls(data);
+      if (data.length > 0 && !blockHall) {
+        setBlockHall(data[0].id || data[0]._id!);
+      }
+    } catch (error) {
+      console.error("Failed to fetch halls:", error);
+    }
+  };
 
   const fetchHallReservations = async () => {
     try {
-      const data = await reservationApi.getAllHallReservations();
+      const hallId = selectedHall === "all" ? undefined : selectedHall;
+      const data = await reservationApi.getAllHallReservations(hallId);
 
       if (data.length > lastResCount.current && lastResCount.current > 0) {
         notificationSound.current?.play().catch(e => console.log("Sound play failed:", e));
@@ -97,9 +114,14 @@ export default function AdminEventHall() {
   const startDayOfWeek = getDay(monthStart);
   const paddingDays = startDayOfWeek === 0 ? 6 : startDayOfWeek - 1;
 
-  const getReservationForDate = (date: Date) => {
+  const hallColors: Record<number, { bg: string, text: string, border: string, icon: any }> = {
+    0: { bg: 'bg-amber-100', text: 'text-amber-800', border: 'border-amber-200', icon: Building2 },
+    1: { bg: 'bg-indigo-100', text: 'text-indigo-800', border: 'border-indigo-200', icon: Castle },
+  };
+
+  const getAllReservationsForDate = (date: Date) => {
     const dateStr = format(date, 'yyyy-MM-dd');
-    return realHallReservations.find(res => {
+    return realHallReservations.filter(res => {
       const resDate = format(new Date(res.date), 'yyyy-MM-dd');
       return resDate === dateStr && res.status !== 'canceled';
     });
@@ -148,6 +170,7 @@ export default function AdminEventHall() {
 
     try {
       await reservationApi.createHallReservation({
+        hall: blockHall,
         date: new Date(blockDate).toISOString(),
         customerName: "BLOCAGE_ADMIN",
         customerPhone: "0000",
@@ -287,31 +310,53 @@ export default function AdminEventHall() {
                   <div key={`padding-${i}`} className="aspect-square" />
                 ))}
                 {calendarDays.map(day => {
-                  const reservation = getReservationForDate(day);
+                  const reservations = getAllReservationsForDate(day);
                   const isTodayRes = isSameDay(day, new Date());
 
                   return (
                     <div
                       key={day.toISOString()}
-                      className={`aspect-square p-1 border border-border rounded-lg cursor-pointer transition-colors ${isTodayRes ? 'ring-2 ring-primary' : ''
-                        } ${reservation ? 'hover:bg-muted/50' : 'hover:bg-muted/30'}`}
-                      onClick={() => reservation && setSelectedReservation(reservation)}
+                      className={`min-h-[80px] p-2 border border-border rounded-lg cursor-pointer transition-all hover:shadow-md ${isTodayRes ? 'ring-2 ring-primary bg-primary/5' : ''
+                        } ${reservations.length > 0 ? 'hover:bg-muted/50' : 'hover:bg-muted/30'}`}
+                      onClick={() => reservations.length > 0 && setSelectedReservation(reservations[0])}
                     >
-                      <div className="text-xs font-medium mb-1">{format(day, 'd')}</div>
-                      {reservation && (
-                        <div
-                          className={`text-xs p-1 rounded truncate ${reservation.status === 'confirmed'
-                            ? 'bg-green-100 text-green-800'
-                            : reservation.status === 'pending'
-                              ? 'bg-yellow-100 text-yellow-800'
-                              : reservation.status === 'blocked'
-                                ? 'bg-destructive/20 text-destructive font-bold'
-                                : 'bg-red-100 text-red-800'
-                            }`}
-                        >
-                          {reservation.eventType}
-                        </div>
-                      )}
+                      <div className="flex justify-between items-start mb-1">
+                        <span className={`text-xs font-bold w-6 h-6 flex items-center justify-center rounded-full ${isTodayRes ? 'bg-primary text-primary-foreground' : 'text-muted-foreground'}`}>
+                          {format(day, 'd')}
+                        </span>
+                        {reservations.length > 1 && (
+                          <Badge variant="outline" className="text-[10px] h-4 px-1 bg-background">
+                            +{reservations.length - 1}
+                          </Badge>
+                        )}
+                      </div>
+
+                      <div className="space-y-1">
+                        {reservations.map((res, idx) => {
+                          const hallId = typeof res.hall === 'string' ? res.hall : res.hall?.id || (res.hall as any)?._id;
+                          const hallIndex = halls.findIndex(h => (h.id === hallId || h._id === hallId));
+                          const isBlocked = res.status === 'blocked';
+                          const colors = isBlocked
+                            ? { bg: 'bg-destructive/10', text: 'text-destructive', border: 'border-destructive/20', icon: Ban }
+                            : hallColors[hallIndex] || { bg: 'bg-gray-100', text: 'text-gray-800', border: 'border-gray-200', icon: PartyPopper };
+                          const Icon = colors.icon;
+
+                          return (
+                            <div
+                              key={res.id || idx}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setSelectedReservation(res);
+                              }}
+                              className={`text-[10px] p-1 rounded-md border ${colors.bg} ${colors.text} ${colors.border} flex items-center gap-1 truncate shadow-sm hover:scale-105 transition-transform ${isBlocked ? 'font-bold' : ''}`}
+                              title={`${typeof res.hall === 'object' ? res.hall.name : 'Salle'}: ${isBlocked ? 'BLOQUÉ' : res.eventType}`}
+                            >
+                              <Icon className="w-2.5 h-2.5 flex-shrink-0" />
+                              <span className="truncate">{isBlocked ? 'BLOQUÉ' : res.eventType}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
                     </div>
                   );
                 })}
@@ -351,6 +396,19 @@ export default function AdminEventHall() {
                   <SelectItem value="blocked">Bloqué</SelectItem>
                 </SelectContent>
               </Select>
+              <Select value={selectedHall} onValueChange={setSelectedHall}>
+                <SelectTrigger className="w-full sm:w-48">
+                  <SelectValue placeholder="Choisir une salle" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Toutes les salles</SelectItem>
+                  {halls.map((hall) => (
+                    <SelectItem key={hall.id || hall._id} value={hall.id || hall._id!}>
+                      {hall.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="overflow-x-auto">
@@ -358,6 +416,7 @@ export default function AdminEventHall() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Date</TableHead>
+                    <TableHead>Salle</TableHead>
                     <TableHead>Client</TableHead>
                     <TableHead>Type d'événement</TableHead>
                     <TableHead>Invités</TableHead>
@@ -370,6 +429,13 @@ export default function AdminEventHall() {
                     <TableRow key={reservation.id}>
                       <TableCell>
                         {format(new Date(reservation.date), 'dd MMM yyyy', { locale: fr })}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline">
+                          {typeof reservation.hall === 'string'
+                            ? (halls.find(h => h.id === reservation.hall || h._id === reservation.hall)?.name || 'Inconnue')
+                            : reservation.hall?.name || 'Inconnue'}
+                        </Badge>
                       </TableCell>
                       <TableCell>
                         <div>
@@ -475,6 +541,14 @@ export default function AdminEventHall() {
                       {format(new Date(selectedReservation.date), 'dd MMMM yyyy', { locale: fr })}
                     </p>
                   </div>
+                  <div>
+                    <Label className="text-muted-foreground">Salle</Label>
+                    <p className="font-medium">
+                      {typeof selectedReservation.hall === 'string'
+                        ? (halls.find(h => h.id === selectedReservation.hall || h._id === selectedReservation.hall)?.name || 'Inconnue')
+                        : (selectedReservation.hall as Hall)?.name || 'Inconnue'}
+                    </p>
+                  </div>
                   {selectedReservation.status !== 'blocked' && (
                     <>
                       <div>
@@ -547,6 +621,21 @@ export default function AdminEventHall() {
               </DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
+              <div className="space-y-2">
+                <Label>Salle</Label>
+                <Select value={blockHall} onValueChange={setBlockHall}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Choisir une salle" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {halls.map((hall) => (
+                      <SelectItem key={hall.id || hall._id} value={hall.id || hall._id!}>
+                        {hall.name}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
               <div className="space-y-2">
                 <Label>Date</Label>
                 <Input

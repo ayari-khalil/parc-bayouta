@@ -3,6 +3,7 @@ const { toJSON, paginate } = require('./plugins');
 
 const hallReservationSchema = mongoose.Schema(
     {
+        hall: { type: mongoose.Schema.Types.ObjectId, ref: 'Hall', required: true },
         date: { type: Date, required: true },
         customerName: { type: String, required: function () { return this.status !== 'blocked'; } },
         customerPhone: { type: String, required: function () { return this.status !== 'blocked'; } },

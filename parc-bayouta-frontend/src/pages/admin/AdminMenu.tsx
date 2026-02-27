@@ -131,6 +131,14 @@ export default function AdminMenu() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['categories'] });
       toast({ title: "Catégorie modifiée", description: "La catégorie a été modifiée avec succès." });
+
+      auditApi.recordLog({
+        admin: user?.username || "Admin",
+        action: "MODIFICATION",
+        category: "Menu (Catégories)",
+        details: `Modification de la catégorie: ${categoryForm.name}`
+      });
+
       setShowCategoryDialog(false);
       setEditingCategory(null);
     },
@@ -141,10 +149,19 @@ export default function AdminMenu() {
 
   const deleteCategoryMutation = useMutation({
     mutationFn: menuApi.deleteCategory,
-    onSuccess: () => {
+    onSuccess: (_, categoryId) => {
       queryClient.invalidateQueries({ queryKey: ['categories'] });
       queryClient.invalidateQueries({ queryKey: ['menuItems'] });
       toast({ title: "Catégorie supprimée", description: "La catégorie a été supprimée avec succès." });
+
+      const category = categories.find(c => c.id === categoryId);
+      auditApi.recordLog({
+        admin: user?.username || "Admin",
+        action: "SUPPRESSION",
+        category: "Menu (Catégories)",
+        details: `Suppression de la catégorie: ${category?.name}`
+      });
+
       setDeleteDialog(null);
     },
     onError: () => {
@@ -180,7 +197,15 @@ export default function AdminMenu() {
       menuApi.updateMenuItem(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['menuItems'] });
-      toast({ title: "Article modifié", description: "L'article a été modifié avec succès." });
+      toast({ title: "Article modifié", description: "La article a été modifié avec succès." });
+
+      auditApi.recordLog({
+        admin: user?.username || "Admin",
+        action: "MODIFICATION",
+        category: "Menu (Articles)",
+        details: `Modification de l'article: ${itemForm.name}`
+      });
+
       setShowItemDialog(false);
       setEditingItem(null);
     },
@@ -191,9 +216,17 @@ export default function AdminMenu() {
 
   const toggleItemMutation = useMutation({
     mutationFn: menuApi.toggleMenuItem,
-    onSuccess: () => {
+    onSuccess: (_, itemId) => {
       queryClient.invalidateQueries({ queryKey: ['menuItems'] });
       toast({ title: "Statut modifié", description: "Le statut de l'article a été modifié." });
+
+      const item = menuItems.find(i => i.id === itemId);
+      auditApi.recordLog({
+        admin: user?.username || "Admin",
+        action: "MODIFICATION",
+        category: "Menu (Articles)",
+        details: `${item?.isActive ? "Désactivation" : "Activation"} de l'article: ${item?.name}`
+      });
     },
     onError: () => {
       toast({ title: "Erreur", description: "Impossible de modifier le statut.", variant: "destructive" });
@@ -202,9 +235,18 @@ export default function AdminMenu() {
 
   const deleteItemMutation = useMutation({
     mutationFn: menuApi.deleteMenuItem,
-    onSuccess: () => {
+    onSuccess: (_, itemId) => {
       queryClient.invalidateQueries({ queryKey: ['menuItems'] });
       toast({ title: "Article supprimé", description: "L'article a été supprimé avec succès." });
+
+      const item = menuItems.find(i => i.id === itemId);
+      auditApi.recordLog({
+        admin: user?.username || "Admin",
+        action: "SUPPRESSION",
+        category: "Menu (Articles)",
+        details: `Suppression de l'article: ${item?.name}`
+      });
+
       setDeleteDialog(null);
     },
     onError: () => {

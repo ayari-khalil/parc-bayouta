@@ -16,8 +16,11 @@ import { fr } from "date-fns/locale";
 import * as orderApi from "@/api/orderApi";
 import * as notificationApi from "@/api/notificationApi";
 import { toast } from "sonner";
+import { auditApi } from "@/api/auditApi";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function AdminOrders() {
+    const { user } = useAuth();
     const queryClient = useQueryClient();
     const [isAudioEnabled, setIsAudioEnabled] = useState(false);
     const notificationSound = useRef<HTMLAudioElement | null>(null);
@@ -82,16 +85,40 @@ export default function AdminOrders() {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ status: data.status })
             }).then(res => res.json()),
-        onSuccess: () => {
+        onSuccess: (_, variables) => {
             queryClient.invalidateQueries({ queryKey: ['adminOrders'] });
+
+            const order = orders.find(o => o.id === variables.id);
+            const statusLabels: Record<string, string> = {
+                'pending': 'EN ATTENTE',
+                'preparing': 'PRÉPARATION',
+                'completed': 'TERMINÉE',
+                'cancelled': 'ANNULÉE'
+            };
+
+            auditApi.recordLog({
+                admin: user?.username || "Admin",
+                action: "MODIFICATION",
+                category: "Commandes Restaurant",
+                details: `Statut de la commande Table ${order?.tableNumber} mis à jour : ${statusLabels[variables.status] || variables.status}`
+            });
+
             toast.success("Statut mis à jour");
         }
     });
 
     const readNotifMutation = useMutation({
         mutationFn: notificationApi.markAsRead,
-        onSuccess: () => {
+        onSuccess: (_, notifId) => {
             queryClient.invalidateQueries({ queryKey: ['adminNotifications'] });
+
+            const notif = notifications.find(n => n.id === notifId);
+            auditApi.recordLog({
+                admin: user?.username || "Admin",
+                action: "MODIFICATION",
+                category: "Appels Clients",
+                details: `Appel client Table ${notif?.tableNumber} marqué comme traité`
+            });
         }
     });
 

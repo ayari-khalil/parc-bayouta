@@ -1,16 +1,19 @@
+import { useState, useEffect, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Calendar, PartyPopper, Coffee, CalendarDays, ArrowRight, ChevronDown, Check } from "lucide-react";
+import { Calendar, PartyPopper, Coffee, CalendarDays, ArrowRight, ChevronDown, Check, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import heroBg from "@/assets/hero-bg.jpg";
 import logoHero from "@/assets/logo-hero.png";
 import terrainImg from "@/assets/terrain-foot.jpg";
 import salleImg from "@/assets/salle-fetes.jpg";
 import cafeImg from "@/assets/cafe-restaurant.jpg";
-import { events, getCategoryLabel, getCategoryColor } from "@/data/mockData";
-import { format, parseISO } from "date-fns";
+import { getCategoryLabel, getCategoryColor } from "@/data/mockData";
+import { format, parseISO, isAfter } from "date-fns";
 import { fr } from "date-fns/locale";
 import { PublicLayout } from "@/components/layout/PublicLayout";
+import { eventApi, Event } from "@/api/dashboardApi";
+import { useToast } from "@/hooks/use-toast";
 
 const services = [
   {
@@ -42,9 +45,41 @@ const services = [
   },
 ];
 
-const upcomingEvents = events.filter((e) => e.isActive && e.isFeatured).slice(0, 3);
-
 export default function Home() {
+  const [events, setEvents] = useState<Event[]>([]);
+  const [loading, setLoading] = useState(true);
+  const { toast } = useToast();
+
+  useEffect(() => {
+    fetchEvents();
+  }, []);
+
+  const fetchEvents = async () => {
+    try {
+      setLoading(true);
+      const data = await eventApi.getEvents();
+      setEvents(data);
+    } catch (error) {
+      console.error("Failed to fetch events:", error);
+      toast({
+        title: "Erreur",
+        description: "Impossible de charger les événements.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const upcomingEvents = useMemo(() => {
+    const now = new Date();
+    return events
+      .filter((e) => e.isActive && (e.isFeatured || true)) // featured or active for home
+      .filter((e) => isAfter(parseISO(e.date), now) || format(parseISO(e.date), 'yyyy-MM-dd') === format(now, 'yyyy-MM-dd'))
+      .sort((a, b) => parseISO(a.date).getTime() - parseISO(b.date).getTime())
+      .slice(0, 3);
+  }, [events]);
+
   const scrollToServices = () => {
     document.getElementById("services")?.scrollIntoView({ behavior: "smooth" });
   };
@@ -187,44 +222,68 @@ export default function Home() {
       </section>
 
       {/* Upcoming Events Section */}
-      {upcomingEvents.length > 0 && (
-        <section className="py-24 bg-muted/50">
-          <div className="container mx-auto px-4">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              className="flex flex-col md:flex-row md:items-end justify-between mb-12"
-            >
-              <div>
-                <span className="inline-block px-4 py-1.5 bg-secondary/20 text-secondary rounded-full text-sm font-medium mb-4">
-                  À venir
-                </span>
-                <h2 className="font-display text-4xl md:text-5xl font-bold text-foreground">Événements</h2>
-              </div>
-              <Button variant="outline" className="mt-4 md:mt-0" asChild>
-                <Link to="/events">
-                  Voir tous les événements
-                  <ArrowRight className="w-4 h-4" />
-                </Link>
-              </Button>
-            </motion.div>
+      <section className="py-24 bg-muted/50">
+        <div className="container mx-auto px-4">
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            className="flex flex-col md:flex-row md:items-end justify-between mb-12"
+          >
+            <div>
+              <span className="inline-block px-4 py-1.5 bg-secondary/20 text-secondary rounded-full text-sm font-medium mb-4">
+                À venir
+              </span>
+              <h2 className="font-display text-4xl md:text-5xl font-bold text-foreground">Événements</h2>
+            </div>
+            <Button variant="outline" className="mt-4 md:mt-0" asChild>
+              <Link to="/events">
+                Voir tous les événements
+                <ArrowRight className="w-4 h-4" />
+              </Link>
+            </Button>
+          </motion.div>
 
+          {loading ? (
+            <div className="flex flex-col items-center justify-center py-12">
+              <Loader2 className="w-10 h-10 text-primary animate-spin mb-4" />
+              <p className="text-muted-foreground">Chargement des événements...</p>
+            </div>
+          ) : upcomingEvents.length === 0 ? (
+            <div className="text-center py-12 bg-card rounded-2xl border border-dashed border-border">
+              <CalendarDays className="w-12 h-12 text-muted-foreground mx-auto mb-4 opacity-50" />
+              <p className="text-muted-foreground">Aucun événement prévu pour le moment.</p>
+            </div>
+          ) : (
             <div className="grid md:grid-cols-3 gap-6">
               {upcomingEvents.map((event, index) => (
                 <motion.div
-                  key={event.id}
+                  key={event._id || event.id}
                   initial={{ opacity: 0, y: 20 }}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
                   transition={{ delay: index * 0.1 }}
-                  className="bg-card rounded-2xl overflow-hidden shadow-card card-hover"
+                  className="bg-card rounded-2xl overflow-hidden shadow-card card-hover group"
                 >
                   <div className="relative h-40">
-                    <img src={event.image} alt={event.title} className="w-full h-full object-cover" />
+                    {event.image ? (
+                      <img
+                        src={event.image}
+                        alt={event.title}
+                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                      />
+                    ) : (
+                      <div className={`w-full h-full transition-transform duration-500 group-hover:scale-105 ${event.category === 'movie' ? 'bg-gradient-to-br from-blue-600 to-blue-900' :
+                        event.category === 'gaming' ? 'bg-gradient-to-br from-purple-600 to-purple-900' :
+                          event.category === 'party' ? 'bg-gradient-to-br from-pink-600 to-pink-900' :
+                            event.category === 'kids' ? 'bg-gradient-to-br from-orange-500 to-orange-800' :
+                              event.category === 'tournament' ? 'bg-gradient-to-br from-emerald-600 to-emerald-900' :
+                                'bg-gradient-to-br from-gray-600 to-gray-900'
+                        }`} />
+                    )}
                     <div className="absolute top-3 left-3">
                       <span
-                        className={`px-3 py-1 rounded-full text-xs font-medium ${getCategoryColor(event.category)}`}
+                        className={`px-3 py-1 rounded-full text-xs font-medium backdrop-blur-sm ${getCategoryColor(event.category)}`}
                       >
                         {getCategoryLabel(event.category)}
                       </span>
@@ -246,9 +305,9 @@ export default function Home() {
                 </motion.div>
               ))}
             </div>
-          </div>
-        </section>
-      )}
+          )}
+        </div>
+      </section>
 
       {/* CTA Section */}
       <section className="py-24 bg-primary">

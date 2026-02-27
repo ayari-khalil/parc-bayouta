@@ -176,45 +176,31 @@ export default function EventHall() {
               Un espace élégant et modulable pour tous vos événements importants
             </p>
 
-            {/* Hall Selection Tabs */}
-            <div className="flex justify-center mt-12 mb-8">
-              <div className="inline-flex p-1.5 bg-background/50 backdrop-blur-md rounded-2xl border border-secondary/20 shadow-xl overflow-hidden">
-                {halls.map((hall, index) => {
-                  const hallId = hall.id || hall._id;
-                  const isActive = selectedHall === hallId;
-                  const Icon = index === 0 ? Building2 : Castle;
+            {/* Hall Selection Buttons */}
+            <div className="flex flex-wrap justify-center gap-4 mt-8">
+              {halls.map((hall, index) => {
+                const hallId = hall.id || hall._id;
+                const isActive = selectedHall === hallId;
+                const Icon = index === 0 ? Building2 : Castle;
 
-                  return (
-                    <Button
-                      key={hallId}
-                      variant="ghost"
-                      className={`relative rounded-xl px-10 h-14 font-bold transition-all duration-500 overflow-hidden group ${isActive
-                          ? "text-warm-foreground shadow-inner"
-                          : "text-muted-foreground hover:text-foreground"
-                        }`}
-                      onClick={() => {
-                        setSelectedHall(hallId!);
-                        setSelectedDate(null);
-                      }}
-                    >
-                      {isActive && (
-                        <motion.div
-                          layoutId="activeHall"
-                          className="absolute inset-0 bg-warm shadow-warm/20"
-                          transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
-                        />
-                      )}
-                      <div className="relative flex items-center gap-3 z-10">
-                        <Icon className={`w-5 h-5 transition-transform duration-500 group-hover:scale-110 ${isActive ? 'animate-pulse' : ''}`} />
-                        <span className="tracking-wide uppercase text-sm">{hall.name}</span>
-                      </div>
-
-                      {/* Decorative elements */}
-                      <div className={`absolute bottom-0 left-0 w-full h-1 transition-opacity duration-500 ${isActive ? 'bg-white/20 opacity-100' : 'bg-transparent opacity-0'}`} />
-                    </Button>
-                  );
-                })}
-              </div>
+                return (
+                  <Button
+                    key={hallId}
+                    variant={isActive ? "secondary" : "outline"}
+                    className={`h-14 px-8 rounded-2xl font-bold flex items-center gap-3 transition-all duration-300 ${isActive
+                      ? "shadow-lg scale-105 bg-secondary text-secondary-foreground"
+                      : "bg-background/50 hover:bg-secondary/10 border-secondary/20"
+                      }`}
+                    onClick={() => {
+                      setSelectedHall(hallId!);
+                      setSelectedDate(null);
+                    }}
+                  >
+                    <Icon className={`w-5 h-5 ${isActive ? 'animate-pulse' : 'text-secondary'}`} />
+                    <span className="uppercase tracking-wider">{hall.name}</span>
+                  </Button>
+                );
+              })}
             </div>
           </motion.div>
         </div>
@@ -333,6 +319,8 @@ export default function EventHall() {
               className="lg:col-span-2"
             >
               <div className="bg-card rounded-2xl shadow-card p-6">
+                <h2 className="font-display text-3xl font-bold text-foreground mb-4">Vérifier la disponibilité</h2>
+                <p className="text-muted-foreground">Sélectionnez une date pour votre événement et demandez un devis gratuit.</p>
                 {/* Month Navigation */}
                 <div className="flex flex-col sm:flex-row items-center justify-between gap-2 mb-6">
                   <Button
@@ -543,76 +531,79 @@ export default function EventHall() {
             </form>
           </motion.div>
         </motion.div>
-      )}
+      )
+      }
 
       {/* Lightbox */}
-      {isLightboxOpen && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="fixed inset-0 bg-black/95 z-[100] flex items-center justify-center"
-          onClick={() => setIsLightboxOpen(false)}
-        >
-          <Button
-            variant="ghost"
-            size="icon"
-            className="absolute top-6 right-6 text-white hover:bg-white/10"
+      {
+        isLightboxOpen && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="fixed inset-0 bg-black/95 z-[100] flex items-center justify-center"
             onClick={() => setIsLightboxOpen(false)}
           >
-            <CloseIcon className="h-8 w-8" />
-          </Button>
-
-          <Button
-            variant="ghost"
-            size="icon"
-            className="absolute left-6 text-white hover:bg-white/10 hidden md:flex"
-            onClick={prevImage}
-          >
-            <ChevronLeft className="h-12 w-12" />
-          </Button>
-
-          <motion.img
-            initial={{ scale: 0.9, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            src={galleryImages[activeImageIndex].src}
-            alt={galleryImages[activeImageIndex].alt}
-            className="max-w-full max-h-[90vh] object-contain px-4"
-            onClick={(e) => e.stopPropagation()}
-          />
-
-          <Button
-            variant="ghost"
-            size="icon"
-            className="absolute right-6 text-white hover:bg-white/10 hidden md:flex"
-            onClick={nextImage}
-          >
-            <ChevronRight className="h-12 w-12" />
-          </Button>
-
-          {/* Lightbox Navigation for Mobile */}
-          <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex items-center gap-6 text-white md:hidden">
             <Button
               variant="ghost"
               size="icon"
+              className="absolute top-6 right-6 text-white hover:bg-white/10"
+              onClick={() => setIsLightboxOpen(false)}
+            >
+              <CloseIcon className="h-8 w-8" />
+            </Button>
+
+            <Button
+              variant="ghost"
+              size="icon"
+              className="absolute left-6 text-white hover:bg-white/10 hidden md:flex"
               onClick={prevImage}
-              className="hover:bg-white/10"
             >
-              <ChevronLeft className="h-8 w-8" />
+              <ChevronLeft className="h-12 w-12" />
             </Button>
-            <span className="text-sm font-medium">
-              {activeImageIndex + 1} / {galleryImages.length}
-            </span>
+
+            <motion.img
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              src={galleryImages[activeImageIndex].src}
+              alt={galleryImages[activeImageIndex].alt}
+              className="max-w-full max-h-[90vh] object-contain px-4"
+              onClick={(e) => e.stopPropagation()}
+            />
+
             <Button
               variant="ghost"
               size="icon"
+              className="absolute right-6 text-white hover:bg-white/10 hidden md:flex"
               onClick={nextImage}
-              className="hover:bg-white/10"
             >
-              <ChevronRight className="h-8 w-8" />
+              <ChevronRight className="h-12 w-12" />
             </Button>
-          </div>
-        </motion.div>
-      )}
-    </PublicLayout>
+
+            {/* Lightbox Navigation for Mobile */}
+            <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex items-center gap-6 text-white md:hidden">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={prevImage}
+                className="hover:bg-white/10"
+              >
+                <ChevronLeft className="h-8 w-8" />
+              </Button>
+              <span className="text-sm font-medium">
+                {activeImageIndex + 1} / {galleryImages.length}
+              </span>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={nextImage}
+                className="hover:bg-white/10"
+              >
+                <ChevronRight className="h-8 w-8" />
+              </Button>
+            </div>
+          </motion.div>
+        )
+      }
+    </PublicLayout >
   );
 }

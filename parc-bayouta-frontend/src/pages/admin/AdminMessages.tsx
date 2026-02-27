@@ -38,8 +38,11 @@ import {
 } from "@/data/mockData";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
+import { auditApi } from "@/api/auditApi";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function AdminMessages() {
+  const { user } = useAuth();
   const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -57,7 +60,16 @@ export default function AdminMessages() {
     return matchesSearch && matchesStatus;
   });
 
-  const handleStatusChange = (messageId: string, newStatus: 'processed' | 'archived') => {
+  const handleStatusChange = async (messageId: string, newStatus: 'processed' | 'archived') => {
+    const msg = contactMessages.find(m => m.id === messageId);
+
+    await auditApi.recordLog({
+      admin: user?.username || "Admin",
+      action: "MODIFICATION",
+      category: "Messages & Demandes",
+      details: `Message de ${msg?.name} marqué comme ${newStatus === 'processed' ? 'traité' : 'archivé'}`
+    });
+
     toast({
       title: newStatus === 'processed' ? "Message traité" : "Message archivé",
       description: `Le message a été marqué comme ${newStatus === 'processed' ? 'traité' : 'archivé'}.`,
@@ -65,7 +77,17 @@ export default function AdminMessages() {
     setSelectedMessage(null);
   };
 
-  const handleDeleteMessage = () => {
+  const handleDeleteMessage = async () => {
+    if (deleteMessageId) {
+      const msg = contactMessages.find(m => m.id === deleteMessageId);
+      await auditApi.recordLog({
+        admin: user?.username || "Admin",
+        action: "SUPPRESSION",
+        category: "Messages & Demandes",
+        details: `Suppression du message de ${msg?.name} (Sujet: ${msg?.subject})`
+      });
+    }
+
     toast({
       title: "Message supprimé",
       description: "Le message a été supprimé avec succès.",

@@ -290,7 +290,16 @@ export default function AdminReservations() {
   const handleDeleteHallReservation = async (id: string) => {
     if (!window.confirm("Êtes-vous sûr de vouloir supprimer cette réservation ?")) return;
     try {
+      const res = realHallReservations.find(r => r.id === id);
       await reservationApi.deleteHallReservation(id);
+
+      await auditApi.recordLog({
+        admin: user?.username || "Admin",
+        action: "SUPPRESSION",
+        category: "Réservations Salle",
+        details: `Suppression de la réservation salle pour ${res?.customerName}`
+      });
+
       fetchHallReservations();
       toast({ title: "Réservation supprimée", className: "bg-green-600 text-white border-none" });
       setSelectedHallRes(null);
@@ -302,7 +311,16 @@ export default function AdminReservations() {
   const handleDeleteEventReservation = async (id: string) => {
     if (!window.confirm("Supprimer cette réservation ?")) return;
     try {
+      const res = realEventReservations.find(r => (r._id || r.id) === id);
       await eventApi.deleteReservation(id);
+
+      await auditApi.recordLog({
+        admin: user?.username || "Admin",
+        action: "SUPPRESSION",
+        category: "Réservations Événements",
+        details: `Suppression de la réservation événement pour ${res?.customerName}`
+      });
+
       fetchEventReservations();
       toast({ title: "Supprimé" });
       setSelectedEventRes(null);

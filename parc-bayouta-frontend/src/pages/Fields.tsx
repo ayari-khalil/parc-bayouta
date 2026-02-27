@@ -12,8 +12,8 @@ import { useEffect } from "react";
 import { sendWhatsAppMessage } from "@/lib/whatsappUtils";
 
 const initialFields = [
-  { id: 1, name: "Terrain 1", dbId: "" },
-  { id: 2, name: "Terrain 2", dbId: "" },
+  { id: 1, name: "Terrain 1", dbId: "", image: null as string | null },
+  { id: 2, name: "Terrain 2", dbId: "", image: null as string | null },
 ];
 
 export default function Fields() {
@@ -40,11 +40,11 @@ export default function Fields() {
       ]);
       setExistingReservations(reservationsData);
 
-      // Map DB IDs to our local fields array
+      // Map DB IDs and images to our local fields array
       if (fieldsData.length > 0) {
         setFields(prev => prev.map(f => {
           const dbField = fieldsData.find(df => df.name === f.name);
-          return dbField ? { ...f, dbId: dbField.id } : f;
+          return dbField ? { ...f, dbId: dbField.id, images: dbField.images } : f;
         }));
       }
     } catch (error) {
@@ -168,11 +168,18 @@ export default function Fields() {
               className="lg:col-span-1"
             >
               <div className="bg-card rounded-2xl overflow-hidden shadow-card sticky top-24">
-                <div className="relative aspect-[4/3] overflow-hidden bg-muted">
+                <div className="relative aspect-[4/3] group">
                   <img
-                    src={terrainImg}
+                    src={(() => {
+                      const currentField = fields.find(f => f.id === selectedTerrain);
+                      const images = (currentField as any)?.images;
+                      if (images && images.length > 0) {
+                        return images[0].startsWith('http') ? images[0] : `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${images[0]}`;
+                      }
+                      return terrainImg;
+                    })()}
                     alt="Terrain de mini-foot"
-                    className="w-full h-full object-cover transition-transform duration-500 hover:scale-105"
+                    className="w-full h-full object-cover"
                   />
                 </div>
                 <div className="p-6">

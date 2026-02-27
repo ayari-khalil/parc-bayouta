@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Calendar, Search, Plus, Eye, Check, X, Ban, Users, PartyPopper, Trash2, Building2, Castle } from "lucide-react";
+import { Calendar, Search, Plus, Eye, Check, X, Ban, Users, PartyPopper, Trash2, Building2, Castle, Edit2, Upload, Loader2, Image as ImageIcon } from "lucide-react";
 import { AdminLayout } from "@/components/layout/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -55,6 +55,10 @@ export default function AdminEventHall() {
   const [blockDate, setBlockDate] = useState("");
   const [blockHall, setBlockHall] = useState("");
   const [blockReason, setBlockReason] = useState("");
+  const [showHallsDialog, setShowHallsDialog] = useState(false);
+  const [editingHall, setEditingHall] = useState<Hall | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   const lastResCount = useRef(0);
   const notificationSound = useRef<HTMLAudioElement | null>(null);
@@ -97,6 +101,111 @@ export default function AdminEventHall() {
       lastResCount.current = data.length;
     } catch (error) {
       console.error("Failed to fetch hall reservations:", error);
+    }
+  };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, hallId: string) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setIsUploading(true);
+      const formData = new FormData();
+      formData.append('image', file);
+
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/upload`, {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) throw new Error("Upload failed");
+      const data = await response.json();
+
+      const hall = halls.find(h => (h.id === hallId || h._id === hallId));
+      const currentImages = hall?.images || [];
+
+      await reservationApi.updateHall(hallId, { images: [...currentImages, data.url] });
+
+      await auditApi.recordLog({
+        admin: user?.username || "Admin",
+        action: "MODIFICATION",
+        category: "Salles",
+        details: `Ajout d'une image pour la salle ${hall?.name}`
+      });
+
+      toast({
+        title: "Image ajoutée",
+        description: "L'image a été ajoutée à la galerie avec succès.",
+      });
+      fetchHalls();
+    } catch (error) {
+      toast({
+        title: "Erreur",
+        description: "Impossible d'uploader l'image.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleDeleteImage = async (hallId: string, imageUrl: string) => {
+    try {
+      setIsUploading(true);
+      const hall = halls.find(h => (h.id === hallId || h._id === hallId));
+      const updatedImages = (hall?.images || []).filter(img => img !== imageUrl);
+
+      await reservationApi.updateHall(hallId, { images: updatedImages });
+
+      await auditApi.recordLog({
+        admin: user?.username || "Admin",
+        action: "SUPPRESSION",
+        category: "Salles",
+        details: `Suppression d'une image pour la salle ${hall?.name}`
+      });
+
+      toast({
+        title: "Image supprimée",
+        description: "L'image a été retirée de la galerie.",
+      });
+      fetchHalls();
+    } catch (error) {
+      toast({
+        title: "Erreur",
+        description: "Impossible de supprimer l'image.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleUpdateHallName = async (hallId: string, newName: string) => {
+    try {
+      setIsSaving(true);
+      await reservationApi.updateHall(hallId, { name: newName });
+
+      await auditApi.recordLog({
+        admin: user?.username || "Admin",
+        action: "MODIFICATION",
+        category: "Salles",
+        details: `Mise à jour du nom de la salle: ${newName}`
+      });
+
+      toast({
+        title: "Salle mise à jour",
+        description: "Le nom de la salle a été modifié avec succès.",
+      });
+      fetchHalls();
+      setEditingHall(null);
+    } catch (error) {
+      toast({
+        title: "Erreur",
+        description: "Impossible de mettre à jour la salle.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -242,10 +351,16 @@ export default function AdminEventHall() {
             <h1 className="text-2xl font-display font-bold">Salle des Fêtes</h1>
             <p className="text-muted-foreground">Gérez les réservations de la salle des fêtes</p>
           </div>
-          <Button onClick={() => setShowBlockDialog(true)}>
-            <Ban className="w-4 h-4 mr-2" />
-            Bloquer une date
-          </Button>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={() => setShowHallsDialog(true)}>
+              <Edit2 className="w-4 h-4 mr-2" />
+              Gérer les Salles
+            </Button>
+            <Button onClick={() => setShowBlockDialog(true)}>
+              <Ban className="w-4 h-4 mr-2" />
+              Bloquer une date
+            </Button>
+          </div>
         </div>
 
         {/* Stats Cards */}
@@ -720,6 +835,134 @@ export default function AdminEventHall() {
                 Bloquer
               </Button>
             </DialogFooter>
+          </DialogContent>
+        </Dialog>
+
+        {/* Manage Halls Dialog */}
+        <Dialog open={showHallsDialog} onOpenChange={setShowHallsDialog}>
+          <DialogContent className="w-[95vw] sm:max-w-2xl max-h-[90vh] flex flex-col p-0 overflow-hidden">
+            <div className="p-6 pb-2">
+              <DialogHeader>
+                <DialogTitle>Gestion des Salles</DialogTitle>
+                <DialogDescription>
+                  Modifiez les noms et les images des salles d'événements
+                </DialogDescription>
+              </DialogHeader>
+            </div>
+
+            <div className="flex-1 space-y-6 py-4 px-6 overflow-y-auto">
+              {halls.map((hall, idx) => {
+                const hallId = hall.id || hall._id!;
+                const isEditing = editingHall?.id === hallId || editingHall?._id === hallId;
+                const HallIcon = idx === 1 ? Castle : Building2;
+
+                return (
+                  <div key={hallId} className="flex flex-col sm:flex-row gap-6 p-4 border rounded-2xl bg-muted/30">
+                    <div className="flex flex-col gap-4 w-full sm:w-64">
+                      <div className="grid grid-cols-2 gap-2">
+                        {hall.images && hall.images.length > 0 ? (
+                          hall.images.map((img, i) => (
+                            <div key={i} className="relative aspect-square bg-muted rounded-lg overflow-hidden group/img">
+                              <img
+                                src={img.startsWith('http') ? img : `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${img}`}
+                                alt={`${hall.name} - ${i + 1}`}
+                                className="w-full h-full object-cover"
+                              />
+                              <button
+                                onClick={() => handleDeleteImage(hallId, img)}
+                                className="absolute top-1 right-1 p-1 bg-destructive text-destructive-foreground rounded-full opacity-0 group-hover/img:opacity-100 transition-opacity"
+                              >
+                                <Trash2 className="w-3 h-3" />
+                              </button>
+                            </div>
+                          ))
+                        ) : (
+                          <div className="col-span-2 aspect-video bg-muted rounded-xl flex flex-col items-center justify-center border-2 border-dashed border-muted-foreground/20">
+                            <ImageIcon className="w-8 h-8 opacity-20" />
+                            <span className="text-[10px] text-muted-foreground">Aucune image</span>
+                          </div>
+                        )}
+                        <label className="aspect-square bg-muted rounded-lg overflow-hidden flex items-center justify-center border-2 border-dashed border-muted-foreground/20 hover:border-primary/50 cursor-pointer transition-colors group/add">
+                          <input
+                            type="file"
+                            className="hidden"
+                            accept="image/*"
+                            onChange={(e) => handleImageUpload(e, hallId)}
+                            disabled={isUploading}
+                          />
+                          {isUploading ? <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" /> : <Plus className="w-4 h-4 text-muted-foreground group-hover/add:text-primary" />}
+                        </label>
+                      </div>
+                    </div>
+
+                    <div className="flex-1 space-y-4">
+                      <div className="flex items-center gap-2">
+                        <div className={`p-2 rounded-lg ${idx === 1 ? 'bg-indigo-100 text-indigo-600' : 'bg-cyan-100 text-cyan-600'}`}>
+                          <HallIcon className="w-5 h-5" />
+                        </div>
+                        <span className="font-bold text-lg">Salle {idx + 1}</span>
+                      </div>
+
+                      {isEditing ? (
+                        <div className="flex items-center gap-2">
+                          <Input
+                            defaultValue={hall.name}
+                            className="h-9"
+                            id={`hall-name-${hallId}`}
+                          />
+                          <Button
+                            size="sm"
+                            className="h-9"
+                            disabled={isSaving}
+                            onClick={() => {
+                              const input = document.getElementById(`hall-name-${hallId}`) as HTMLInputElement;
+                              handleUpdateHallName(hallId, input.value);
+                            }}
+                          >
+                            {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-9"
+                            onClick={() => setEditingHall(null)}
+                          >
+                            <X className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      ) : (
+                        <div className="flex items-center justify-between">
+                          <p className="font-medium text-foreground">{hall.name}</p>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-primary hover:text-primary hover:bg-primary/10"
+                            onClick={() => setEditingHall(hall)}
+                          >
+                            <Edit2 className="w-4 h-4 mr-2" />
+                            Modifier le nom
+                          </Button>
+                        </div>
+                      )}
+
+                      <div className="flex items-center gap-4 pt-2">
+                        <Badge variant="outline" className={hall.status === 'active' ? 'bg-green-50 text-green-700 border-green-200' : 'bg-red-50 text-red-700 border-red-200'}>
+                          {hall.status === 'active' ? 'Opérationnelle' : 'Maintenance'}
+                        </Badge>
+                        <span className="text-xs text-muted-foreground italic">
+                          ID: {hallId.substring(0, 8)}...
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            <div className="p-6 pt-2 border-t mt-auto">
+              <DialogFooter>
+                <Button className="w-full sm:w-auto" onClick={() => setShowHallsDialog(false)}>Fermer</Button>
+              </DialogFooter>
+            </div>
           </DialogContent>
         </Dialog>
       </div>

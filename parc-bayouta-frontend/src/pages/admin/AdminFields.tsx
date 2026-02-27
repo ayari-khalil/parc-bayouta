@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Calendar, Search, Filter, Plus, Edit, Trash2, Eye, Ban, Check, X, Clock, Repeat } from "lucide-react";
+import { Calendar, Search, Filter, Plus, Edit, Trash2, Eye, Ban, Check, X, Clock, Repeat, Edit2, Upload, Loader2, Image as ImageIcon } from "lucide-react";
 import { AdminLayout } from "@/components/layout/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -38,8 +38,8 @@ import { auditApi } from "@/api/auditApi";
 import { useAuth } from "@/contexts/AuthContext";
 
 const initialFields = [
-  { id: 1, name: "Terrain 1", status: 'active', dbId: "" },
-  { id: 2, name: "Terrain 2", status: 'active', dbId: "" },
+  { id: 1, name: "Terrain 1", status: 'active', dbId: "", image: null as string | null },
+  { id: 2, name: "Terrain 2", status: 'active', dbId: "", image: null as string | null },
 ];
 
 const timeSlots = [
@@ -93,6 +93,10 @@ export default function AdminFields() {
   });
   const [fields, setFields] = useState(initialFields);
   const [isLoading, setIsLoading] = useState(true);
+  const [showFieldsDialog, setShowFieldsDialog] = useState(false);
+  const [editingField, setEditingField] = useState<any>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     fetchInitialData();
@@ -117,6 +121,112 @@ export default function AdminFields() {
       console.error("Failed to fetch field data:", error);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, fieldId: string) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setIsUploading(true);
+      const formData = new FormData();
+      formData.append('image', file);
+
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/upload`, {
+        method: 'POST',
+        body: formData,
+      });
+
+      if (!response.ok) throw new Error("Upload failed");
+      const data = await response.json();
+
+      const field = fields.find(f => f.dbId === fieldId);
+      const currentImages = (field as any)?.images || [];
+
+      await reservationApi.updateField(fieldId, { images: [...currentImages, data.url] });
+
+      await auditApi.recordLog({
+        admin: user?.username || "Admin",
+        action: "MODIFICATION",
+        category: "Terrains",
+        details: `Ajout d'une image pour le terrain ${field?.name}`
+      });
+
+      toast({
+        title: "Image ajoutée",
+        description: "L'image a été ajoutée à la galerie avec succès.",
+      });
+      fetchInitialData();
+    } catch (error) {
+      toast({
+        title: "Erreur",
+        description: "Impossible d'uploader l'image.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleDeleteImage = async (fieldId: string, imageUrl: string) => {
+    try {
+      setIsUploading(true);
+      const field = fields.find(f => f.dbId === fieldId);
+      const currentImages = (field as any)?.images || [];
+      const updatedImages = currentImages.filter((img: string) => img !== imageUrl);
+
+      await reservationApi.updateField(fieldId, { images: updatedImages });
+
+      await auditApi.recordLog({
+        admin: user?.username || "Admin",
+        action: "SUPPRESSION",
+        category: "Terrains",
+        details: `Suppression d'une image pour le terrain ${field?.name}`
+      });
+
+      toast({
+        title: "Image supprimée",
+        description: "L'image a été retirée de la galerie.",
+      });
+      fetchInitialData();
+    } catch (error) {
+      toast({
+        title: "Erreur",
+        description: "Impossible de supprimer l'image.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleUpdateFieldName = async (fieldId: string, newName: string) => {
+    try {
+      setIsSaving(true);
+      await reservationApi.updateField(fieldId, { name: newName });
+
+      await auditApi.recordLog({
+        admin: user?.username || "Admin",
+        action: "MODIFICATION",
+        category: "Terrains",
+        details: `Mise à jour du nom du terrain: ${newName}`
+      });
+
+      toast({
+        title: "Terrain mis à jour",
+        description: "Le nom du terrain a été modifié avec succès.",
+      });
+      fetchInitialData();
+      setEditingField(null);
+    } catch (error) {
+      toast({
+        title: "Erreur",
+        description: "Impossible de mettre à jour le terrain.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -307,6 +417,10 @@ export default function AdminFields() {
               onClick={() => setViewMode("calendar")}
             >
               Calendrier
+            </Button>
+            <Button variant="outline" onClick={() => setShowFieldsDialog(true)}>
+              <Edit2 className="w-4 h-4 mr-2" />
+              Gérer les Terrains
             </Button>
             <Button onClick={() => setShowBlockDialog(true)}>
               <Ban className="w-4 h-4 mr-2" />
@@ -804,7 +918,135 @@ export default function AdminFields() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
+
+        {/* Manage Fields Dialog */}
+        <Dialog open={showFieldsDialog} onOpenChange={setShowFieldsDialog}>
+          <DialogContent className="w-[95vw] sm:max-w-2xl max-h-[90vh] flex flex-col p-0 overflow-hidden">
+            <div className="p-6 pb-2">
+              <DialogHeader>
+                <DialogTitle>Gestion des Terrains</DialogTitle>
+                <DialogDescription>
+                  Modifiez les noms et les images des terrains de football
+                </DialogDescription>
+              </DialogHeader>
+            </div>
+
+            <div className="flex-1 space-y-6 py-4 px-6 overflow-y-auto">
+              {fields.map((field, idx) => {
+                const isEditing = editingField?.id === field.id;
+
+                return (
+                  <div key={field.id} className="flex flex-col sm:flex-row gap-6 p-4 border rounded-2xl bg-muted/30">
+                    <div className="flex flex-col gap-4 w-full sm:w-64">
+                      <div className="grid grid-cols-2 gap-2">
+                        {(field as any).images && (field as any).images.length > 0 ? (
+                          (field as any).images.map((img: string, i: number) => (
+                            <div key={i} className="relative aspect-square bg-muted rounded-lg overflow-hidden group/img">
+                              <img
+                                src={img.startsWith('http') ? img : `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${img}`}
+                                alt={`${field.name} - ${i + 1}`}
+                                className="w-full h-full object-cover"
+                              />
+                              <button
+                                onClick={() => handleDeleteImage(field.dbId, img)}
+                                className="absolute top-1 right-1 p-1 bg-destructive text-destructive-foreground rounded-full opacity-0 group-hover/img:opacity-100 transition-opacity"
+                              >
+                                <Trash2 className="w-3 h-3" />
+                              </button>
+                            </div>
+                          ))
+                        ) : (
+                          <div className="col-span-2 aspect-video bg-muted rounded-xl flex flex-col items-center justify-center border-2 border-dashed border-muted-foreground/20">
+                            <ImageIcon className="w-8 h-8 opacity-20" />
+                            <span className="text-[10px] text-muted-foreground">Aucune image</span>
+                          </div>
+                        )}
+                        <label className="aspect-square bg-muted rounded-lg overflow-hidden flex items-center justify-center border-2 border-dashed border-muted-foreground/20 hover:border-primary/50 cursor-pointer transition-colors group/add">
+                          <input
+                            type="file"
+                            className="hidden"
+                            accept="image/*"
+                            onChange={(e) => handleImageUpload(e, field.dbId)}
+                            disabled={isUploading}
+                          />
+                          {isUploading ? <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" /> : <Plus className="w-4 h-4 text-muted-foreground group-hover/add:text-primary" />}
+                        </label>
+                      </div>
+                    </div>
+
+                    <div className="flex-1 space-y-4">
+                      <div className="flex items-center gap-2">
+                        <div className="p-2 rounded-lg bg-emerald-100 text-emerald-600">
+                          <Plus className="w-5 h-5 font-bold" />
+                        </div>
+                        <span className="font-bold text-lg">{field.name}</span>
+                      </div>
+
+                      {isEditing ? (
+                        <div className="flex items-center gap-2">
+                          <Input
+                            defaultValue={field.name}
+                            className="h-9"
+                            id={`field-name-${field.id}`}
+                          />
+                          <Button
+                            size="sm"
+                            className="h-9"
+                            disabled={isSaving}
+                            onClick={() => {
+                              const input = document.getElementById(`field-name-${field.id}`) as HTMLInputElement;
+                              handleUpdateFieldName(field.dbId, input.value);
+                            }}
+                          >
+                            {isSaving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />}
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="h-9"
+                            onClick={() => setEditingField(null)}
+                          >
+                            <X className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      ) : (
+                        <div className="flex items-center justify-between">
+                          <p className="font-medium text-foreground">{field.name}</p>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-primary hover:text-primary hover:bg-primary/10"
+                            onClick={() => setEditingField(field)}
+                          >
+                            <Edit2 className="w-4 h-4 mr-2" />
+                            Modifier le nom
+                          </Button>
+                        </div>
+                      )}
+
+                      <div className="flex items-center gap-4 pt-2">
+                        <Badge variant="outline" className={field.status === 'active' ? 'bg-green-50 text-green-700 border-green-200' : 'bg-red-50 text-red-700 border-red-200'}>
+                          {field.status === 'active' ? 'Opérationnel' : 'Indisponible'}
+                        </Badge>
+                        {field.dbId && (
+                          <span className="text-xs text-muted-foreground italic">
+                            ID: {field.dbId.substring(0, 8)}...
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            <div className="p-6 pt-2 border-t mt-auto">
+              <DialogFooter>
+                <Button className="w-full sm:w-auto" onClick={() => setShowFieldsDialog(false)}>Fermer</Button>
+              </DialogFooter>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
-    </AdminLayout>
+    </AdminLayout >
   );
 }

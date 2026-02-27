@@ -14,6 +14,15 @@ router.get('/halls', async (req, res) => {
     }
 });
 
+router.patch('/halls/:hallId', async (req, res) => {
+    try {
+        const hall = await hallService.updateHallById(req.params.hallId, req.body);
+        res.send(hall);
+    } catch (error) {
+        res.status(400).send({ message: error.message });
+    }
+});
+
 router.post('/', async (req, res) => {
     try {
         const reservation = await hallReservationService.createReservation(req.body);

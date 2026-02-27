@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef } from "react";
-import { Search, Calendar, Users, Clock, Check, X, Eye, Download, Filter, Trash2, Repeat, Volume2, VolumeX, Loader2, Building2, Castle } from "lucide-react";
+import { Search, Calendar, Users, Clock, Check, X, Eye, Download, Filter, Trash2, Repeat, Volume2, VolumeX, Loader2, Building2, Castle, FileDown } from "lucide-react";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 import { AdminLayout } from "@/components/layout/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -48,6 +50,7 @@ const initialFields = [
 ];
 
 type ReservationType = 'field' | 'hall' | 'event';
+type ExportRange = '7days' | '30days' | 'year' | 'all';
 
 export default function AdminReservations() {
   const { user } = useAuth();
@@ -69,6 +72,9 @@ export default function AdminReservations() {
   const [realEventReservations, setRealEventReservations] = useState<RealEventRes[]>([]);
   const [realEvents, setRealEvents] = useState<Event[]>([]);
   const [selectedEventRes, setSelectedEventRes] = useState<RealEventRes | null>(null);
+  const [showExportDialog, setShowExportDialog] = useState(false);
+  const [exportRange, setExportRange] = useState<ExportRange>("7days");
+  const [isExporting, setIsExporting] = useState(false);
 
   const lastHallCount = useRef(0);
   const lastFieldCount = useRef(0);
@@ -345,6 +351,166 @@ export default function AdminReservations() {
       realHallReservations.filter(r => format(new Date(r.date), 'yyyy-MM-dd') === today).length;
   };
 
+  const handleExportPDF = async () => {
+    try {
+      setIsExporting(true);
+      const doc = new jsPDF();
+      const dateStr = format(new Date(), "dd/MM/yyyy HH:mm");
+
+      // Title & Header
+      doc.setFontSize(22);
+      doc.setTextColor(22, 101, 52); // primary color
+      doc.text("Parc Bayouta - Rapport des Réservations", 14, 20);
+
+      doc.setFontSize(10);
+      doc.setTextColor(100);
+      doc.text(`Généré le: ${dateStr}`, 14, 28);
+      doc.text(`Période: ${exportRange === '7days' ? 'Derniers 7 jours' :
+        exportRange === '30days' ? 'Derniers 30 jours' :
+          exportRange === 'year' ? 'Dernière année' : 'Toutes les réservations'}`, 14, 34);
+
+      let currentY = 45;
+
+      const now = new Date();
+      const filterByRange = (date: Date) => {
+        if (exportRange === 'all') return true;
+        const resDate = new Date(date);
+        const diffDays = Math.floor((now.getTime() - resDate.getTime()) / (1000 * 60 * 60 * 24));
+
+        if (exportRange === '7days') return diffDays <= 7;
+        if (exportRange === '30days') return diffDays <= 30;
+        if (exportRange === 'year') return diffDays <= 365;
+        return true;
+      };
+
+      // 1. TERRAINS
+      const fieldData = realFieldReservations
+        .filter(r => filterByRange(new Date(r.date)))
+        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+        .map(r => [
+          format(new Date(r.date), "dd/MM/yyyy"),
+          r.timeSlot,
+          typeof r.field === 'object' ? r.field.name : (fields.find(f => (f as any).dbId === r.field)?.name || `Terrain ${r.field}`),
+          r.customerName,
+          r.customerPhone,
+          getStatusLabel(r.status)
+        ]);
+
+      if (fieldData.length > 0) {
+        doc.setFontSize(14);
+        doc.setTextColor(0);
+        doc.text("Réservations Terrains de Football", 14, currentY);
+
+        autoTable(doc, {
+          startY: currentY + 5,
+          head: [['Date', 'Créneau', 'Terrain', 'Client', 'Téléphone', 'Statut']],
+          body: fieldData,
+          theme: 'grid',
+          headStyles: { fillColor: [22, 101, 52] },
+          margin: { top: 10 },
+        });
+
+        currentY = (doc as any).lastAutoTable.finalY + 15;
+      }
+
+      // 2. SALLE DES FETES
+      if (currentY > 250) { doc.addPage(); currentY = 20; }
+
+      const hallData = realHallReservations
+        .filter(r => filterByRange(new Date(r.date)))
+        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+        .map(r => {
+          const hallId = typeof r.hall === 'string' ? r.hall : (r.hall as any)?.id || (r.hall as any)?._id;
+          const hallIndex = halls.findIndex(h => (h.id === hallId || h._id === hallId));
+          const hallName = typeof r.hall === 'string'
+            ? (halls.find(h => h.id === r.hall || h._id === r.hall)?.name || 'Salle')
+            : r.hall?.name || 'Salle';
+
+          return [
+            format(new Date(r.date), "dd/MM/yyyy"),
+            `Salle ${hallIndex + 1} (${hallName})`,
+            r.customerName,
+            r.eventType,
+            r.guestCount,
+            getStatusLabel(r.status)
+          ];
+        });
+
+      if (hallData.length > 0) {
+        doc.setFontSize(14);
+        doc.text("Réservations Salle des Fêtes", 14, currentY);
+
+        autoTable(doc, {
+          startY: currentY + 5,
+          head: [['Date', 'Salle', 'Client', 'Type', 'Invités', 'Statut']],
+          body: hallData,
+          theme: 'grid',
+          headStyles: { fillColor: [79, 70, 229] }, // Indigo
+          margin: { top: 10 },
+        });
+
+        currentY = (doc as any).lastAutoTable.finalY + 15;
+      }
+
+      // 3. EVENEMENTS
+      if (currentY > 250) { doc.addPage(); currentY = 20; }
+
+      const eventData = realEventReservations
+        .filter(r => filterByRange(new Date(r.createdAt)))
+        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+        .map(r => {
+          const event = typeof r.event === 'object' ? r.event : realEvents.find(e => (e._id || e.id) === r.event);
+          return [
+            event?.title || 'Événement',
+            r.customerName,
+            r.customerPhone,
+            r.attendees,
+            format(new Date(r.createdAt), "dd/MM/yyyy"),
+            getStatusLabel(r.status)
+          ];
+        });
+
+      if (eventData.length > 0) {
+        doc.setFontSize(14);
+        doc.text("Réservations Événements Spéciaux", 14, currentY);
+
+        autoTable(doc, {
+          startY: currentY + 5,
+          head: [['Événement', 'Client', 'Téléphone', 'Participants', 'Date Réserv.', 'Statut']],
+          body: eventData,
+          theme: 'grid',
+          headStyles: { fillColor: [219, 39, 119] }, // Pink
+          margin: { top: 10 },
+        });
+      }
+
+      const filename = `Rapport_Reservations_Bayouta_${format(new Date(), "yyyyMMdd_HHmm")}.pdf`;
+      doc.save(filename);
+
+      await auditApi.recordLog({
+        admin: user?.username || "Admin",
+        action: "MODIFICATION",
+        category: "Réservations",
+        details: `Export PDF des réservations (${exportRange})`
+      });
+
+      toast({
+        title: "Export réussi",
+        description: `Le rapport a été téléchargé sous le nom ${filename}`,
+      });
+      setShowExportDialog(false);
+    } catch (error) {
+      console.error("PDF Export failed:", error);
+      toast({
+        title: "Erreur d'export",
+        description: "Impossible de générer le fichier PDF.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   if (loading) {
     return (
       <AdminLayout>
@@ -372,7 +538,7 @@ export default function AdminReservations() {
               </Badge>
             )}
           </div>
-          <Button variant="outline">
+          <Button variant="outline" onClick={() => setShowExportDialog(true)}>
             <Download className="w-4 h-4 mr-2" />
             Exporter
           </Button>
@@ -1023,6 +1189,54 @@ export default function AdminReservations() {
           </DialogContent>
         </Dialog>
       </div>
+      {/* Export Dialog */}
+      <Dialog open={showExportDialog} onOpenChange={setShowExportDialog}>
+        <DialogContent className="sm:max-w-[400px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <FileDown className="w-5 h-5 text-primary" />
+              Exporter les réservations en PDF
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label>Période à exporter</Label>
+              <Select value={exportRange} onValueChange={(v: ExportRange) => setExportRange(v)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Choisir une période" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="7days">Derniers 7 jours</SelectItem>
+                  <SelectItem value="30days">Derniers 30 jours</SelectItem>
+                  <SelectItem value="year">Dernière année</SelectItem>
+                  <SelectItem value="all">Toutes les réservations</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground pt-1">
+                Le rapport inclura les réservations des Terrains, de la Salle et des Événements pour la période sélectionnée.
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowExportDialog(false)} disabled={isExporting}>
+              Annuler
+            </Button>
+            <Button onClick={handleExportPDF} disabled={isExporting}>
+              {isExporting ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Génération...
+                </>
+              ) : (
+                <>
+                  <Download className="w-4 h-4 mr-2" />
+                  Générer le PDF
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </AdminLayout>
   );
 }

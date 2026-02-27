@@ -12,6 +12,15 @@ router.get('/fields', async (req, res) => {
     }
 });
 
+router.patch('/fields/:fieldId', async (req, res) => {
+    try {
+        const field = await fieldReservationService.updateFieldById(req.params.fieldId, req.body);
+        res.send(field);
+    } catch (error) {
+        res.status(400).send({ message: error.message });
+    }
+});
+
 router
     .route('/')
     .post(async (req, res) => {

@@ -48,6 +48,7 @@ export default function EventHall() {
   });
   const [activeImageIndex, setActiveImageIndex] = useState(0);
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
+  const [localGallery, setLocalGallery] = useState(galleryImages);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -68,8 +69,23 @@ export default function EventHall() {
   useEffect(() => {
     if (selectedHall) {
       fetchReservations(selectedHall);
+
+      const hall = halls.find(h => (h.id === selectedHall || h._id === selectedHall));
+      if (hall?.images && hall.images.length > 0) {
+        const dynamicImages = hall.images.map(img => ({
+          src: img.startsWith('http') ? img : `${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${img}`,
+          alt: hall.name
+        }));
+        setLocalGallery([
+          ...dynamicImages,
+          ...galleryImages
+        ]);
+      } else {
+        setLocalGallery(galleryImages);
+      }
+      setActiveImageIndex(0);
     }
-  }, [selectedHall]);
+  }, [selectedHall, halls]);
 
   const fetchReservations = async (hallId: string) => {
     try {
@@ -148,12 +164,14 @@ export default function EventHall() {
 
   const nextImage = (e: React.MouseEvent) => {
     e.stopPropagation();
-    setActiveImageIndex((prev) => (prev + 1) % galleryImages.length);
+    if (localGallery.length === 0) return;
+    setActiveImageIndex((prev) => (prev + 1) % localGallery.length);
   };
 
   const prevImage = (e: React.MouseEvent) => {
     e.stopPropagation();
-    setActiveImageIndex((prev) => (prev - 1 + galleryImages.length) % galleryImages.length);
+    if (localGallery.length === 0) return;
+    setActiveImageIndex((prev) => (prev - 1 + localGallery.length) % localGallery.length);
   };
 
   return (
@@ -223,30 +241,32 @@ export default function EventHall() {
                     key={activeImageIndex}
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
-                    src={galleryImages[activeImageIndex].src}
-                    alt={galleryImages[activeImageIndex].alt}
+                    src={localGallery[activeImageIndex]?.src || galleryImages[0].src}
+                    alt={localGallery[activeImageIndex]?.alt || "Salle des fêtes"}
                     className="w-full h-full object-cover"
                   />
 
                   {/* Overlay Controls */}
-                  <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-between px-4">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 rounded-full bg-white/20 hover:bg-white/40 text-white backdrop-blur-sm"
-                      onClick={prevImage}
-                    >
-                      <ChevronLeft className="h-5 w-5" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8 rounded-full bg-white/20 hover:bg-white/40 text-white backdrop-blur-sm"
-                      onClick={nextImage}
-                    >
-                      <ChevronRight className="h-5 w-5" />
-                    </Button>
-                  </div>
+                  {localGallery.length > 1 && (
+                    <div className="absolute inset-0 bg-black/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-between px-4">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 rounded-full bg-white/20 hover:bg-white/40 text-white backdrop-blur-sm"
+                        onClick={prevImage}
+                      >
+                        <ChevronLeft className="h-5 w-5" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 rounded-full bg-white/20 hover:bg-white/40 text-white backdrop-blur-sm"
+                        onClick={nextImage}
+                      >
+                        <ChevronRight className="h-5 w-5" />
+                      </Button>
+                    </div>
+                  )}
 
                   {/* Enlarge Button */}
                   <Button
@@ -259,15 +279,17 @@ export default function EventHall() {
                   </Button>
 
                   {/* Indicators */}
-                  <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-1.5">
-                    {galleryImages.map((_, i) => (
-                      <div
-                        key={i}
-                        className={`w-1.5 h-1.5 rounded-full transition-all ${i === activeImageIndex ? "bg-white w-4" : "bg-white/50"
-                          }`}
-                      />
-                    ))}
-                  </div>
+                  {localGallery.length > 1 && (
+                    <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-1.5">
+                      {localGallery.map((_, i) => (
+                        <div
+                          key={i}
+                          className={`w-1.5 h-1.5 rounded-full transition-all ${i === activeImageIndex ? "bg-white w-4" : "bg-white/50"
+                            }`}
+                        />
+                      ))}
+                    </div>
+                  )}
                 </div>
 
                 <div className="p-6">
@@ -564,8 +586,8 @@ export default function EventHall() {
             <motion.img
               initial={{ scale: 0.9, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
-              src={galleryImages[activeImageIndex].src}
-              alt={galleryImages[activeImageIndex].alt}
+              src={localGallery[activeImageIndex]?.src}
+              alt={localGallery[activeImageIndex]?.alt}
               className="max-w-full max-h-[90vh] object-contain px-4"
               onClick={(e) => e.stopPropagation()}
             />
@@ -590,7 +612,7 @@ export default function EventHall() {
                 <ChevronLeft className="h-8 w-8" />
               </Button>
               <span className="text-sm font-medium">
-                {activeImageIndex + 1} / {galleryImages.length}
+                {activeImageIndex + 1} / {localGallery.length}
               </span>
               <Button
                 variant="ghost"

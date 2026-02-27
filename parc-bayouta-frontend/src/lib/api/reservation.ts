@@ -4,6 +4,7 @@ export interface Hall {
     id: string;
     _id?: string;
     name: string;
+    images: string[];
     status: 'active' | 'maintenance';
 }
 
@@ -94,6 +95,20 @@ export const reservationApi = {
         }
     },
 
+    updateHall: async (id: string, data: Partial<Hall>): Promise<Hall> => {
+        const response = await fetch(`${API_URL}/hall-reservations/halls/${id}`, {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data),
+        });
+        if (!response.ok) {
+            throw new Error('Failed to update hall');
+        }
+        return response.json();
+    },
+
     // Field Reservations
     createFieldReservation: async (reservation: Omit<FieldReservation, 'status'> & { status?: 'pending' | 'confirmed' | 'blocked' }): Promise<FieldReservation> => {
         const response = await fetch(`${API_URL}/field-reservations`, {
@@ -140,10 +155,24 @@ export const reservationApi = {
         }
     },
 
-    getFields: async (): Promise<{ id: string, name: string }[]> => {
+    getFields: async (): Promise<{ id: string, name: string, images: string[] }[]> => {
         const response = await fetch(`${API_URL}/field-reservations/fields`);
         if (!response.ok) {
             throw new Error('Failed to fetch fields');
+        }
+        return response.json();
+    },
+
+    updateField: async (id: string, data: { images?: string[], name?: string }): Promise<any> => {
+        const response = await fetch(`${API_URL}/field-reservations/fields/${id}`, {
+            method: 'PATCH',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(data),
+        });
+        if (!response.ok) {
+            throw new Error('Failed to update field');
         }
         return response.json();
     },

@@ -108,6 +108,22 @@ const deleteReservationById = async (reservationId) => {
     return reservation;
 };
 
+/**
+ * Update field by ID
+ * @param {string} id
+ * @param {Object} updateBody
+ * @returns {Promise<Field>}
+ */
+const updateFieldById = async (id, updateBody) => {
+    const field = await Field.findById(id);
+    if (!field) {
+        throw new Error('Field not found');
+    }
+    Object.assign(field, updateBody);
+    await field.save();
+    return field;
+};
+
 module.exports = {
     getFields,
     createReservation,
@@ -116,4 +132,5 @@ module.exports = {
     getReservationById,
     updateReservationById,
     deleteReservationById,
+    updateFieldById,
 };

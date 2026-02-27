@@ -759,7 +759,7 @@ export default function AdminMenu() {
 
         {/* Item Dialog */}
         <Dialog open={showItemDialog} onOpenChange={setShowItemDialog}>
-          <DialogContent className="sm:max-w-[500px] max-h-[90vh] flex flex-col p-0 overflow-hidden">
+          <DialogContent className="w-[95vw] sm:max-w-[500px] max-h-[90vh] flex flex-col p-0 overflow-hidden">
             <div className="p-6 pb-2">
               <DialogHeader>
                 <DialogTitle>

@@ -4,6 +4,7 @@ const { toJSON, paginate } = require('./plugins');
 const hallSchema = mongoose.Schema(
     {
         name: { type: String, required: true, trim: true },
+        images: { type: [String], default: [] },
         status: { type: String, enum: ['active', 'maintenance'], default: 'active' },
     },
     { timestamps: true }

@@ -470,11 +470,30 @@ export default function AdminEventHall() {
                         {format(new Date(reservation.date), 'dd MMM yyyy', { locale: fr })}
                       </TableCell>
                       <TableCell>
-                        <Badge variant="outline">
-                          {typeof reservation.hall === 'string'
-                            ? (halls.find(h => h.id === reservation.hall || h._id === reservation.hall)?.name || 'Inconnue')
-                            : reservation.hall?.name || 'Inconnue'}
-                        </Badge>
+                        {(() => {
+                          const hallId = typeof reservation.hall === 'string' ? reservation.hall : (reservation.hall as any)?.id || (reservation.hall as any)?._id;
+                          const hallIndex = halls.findIndex(h => (h.id === hallId || h._id === hallId));
+                          const hallNumber = hallIndex !== -1 ? hallIndex + 1 : 1;
+                          const HallIcon = hallIndex === 1 ? Castle : Building2;
+
+                          return (
+                            <Badge
+                              variant="outline"
+                              className={`gap-1.5 ${hallIndex === 1
+                                ? 'border-indigo-200 bg-indigo-50 text-indigo-700'
+                                : 'border-cyan-200 bg-cyan-50 text-cyan-700'
+                                }`}
+                            >
+                              <HallIcon className="w-3.5 h-3.5" />
+                              <span className="font-bold">{hallNumber}</span>
+                              <span>
+                                {typeof reservation.hall === 'string'
+                                  ? (halls.find(h => h.id === reservation.hall || h._id === reservation.hall)?.name || 'Salle')
+                                  : reservation.hall?.name || 'Salle'}
+                              </span>
+                            </Badge>
+                          );
+                        })()}
                       </TableCell>
                       <TableCell>
                         <div>

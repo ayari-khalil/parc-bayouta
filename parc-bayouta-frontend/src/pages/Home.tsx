@@ -1,8 +1,4 @@
-<<<<<<< HEAD
-import { useState, useEffect } from "react";
-=======
 import { useState, useEffect, useMemo } from "react";
->>>>>>> 2441a2b46f75f4c431763d2868b34eac10db9dc8
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Calendar, PartyPopper, Coffee, CalendarDays, ArrowRight, ChevronDown, Check, Loader2 } from "lucide-react";
@@ -16,12 +12,9 @@ import { getCategoryLabel, getCategoryColor } from "@/data/mockData";
 import { format, parseISO, isAfter } from "date-fns";
 import { fr } from "date-fns/locale";
 import { PublicLayout } from "@/components/layout/PublicLayout";
-<<<<<<< HEAD
 import { getSettings, Settings } from "@/api/settingsApi";
-=======
 import { eventApi, Event } from "@/api/dashboardApi";
 import { useToast } from "@/hooks/use-toast";
->>>>>>> 2441a2b46f75f4c431763d2868b34eac10db9dc8
 
 const services = [
   {
@@ -54,34 +47,36 @@ const services = [
 ];
 
 export default function Home() {
-<<<<<<< HEAD
   const [settings, setSettings] = useState<Settings | null>(null);
-  const upcomingEvents = events.filter((e) => e.isActive && e.isFeatured).slice(0, 3);
-=======
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
   useEffect(() => {
-    fetchEvents();
-  }, []);
+    const fetchData = async () => {
+      try {
+        // Fetch settings
+        const settingsData = await getSettings();
+        setSettings(settingsData);
 
-  const fetchEvents = async () => {
-    try {
-      setLoading(true);
-      const data = await eventApi.getEvents();
-      setEvents(data);
-    } catch (error) {
-      console.error("Failed to fetch events:", error);
-      toast({
-        title: "Erreur",
-        description: "Impossible de charger les événements.",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
+        // Fetch events
+        setLoading(true);
+        const eventsData = await eventApi.getEvents();
+        setEvents(eventsData);
+      } catch (error) {
+        console.error("Failed to fetch home page data:", error);
+        toast({
+          title: "Erreur",
+          description: "Impossible de charger les données de la page d'accueil.",
+          variant: "destructive",
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, [toast]); // Add toast to dependency array if it's stable or memoized
 
   const upcomingEvents = useMemo(() => {
     const now = new Date();
@@ -91,15 +86,10 @@ export default function Home() {
       .sort((a, b) => parseISO(a.date).getTime() - parseISO(b.date).getTime())
       .slice(0, 3);
   }, [events]);
->>>>>>> 2441a2b46f75f4c431763d2868b34eac10db9dc8
 
   const scrollToServices = () => {
     document.getElementById("services")?.scrollIntoView({ behavior: "smooth" });
   };
-
-  useEffect(() => {
-    getSettings().then(setSettings).catch(err => console.error("Failed to fetch home page settings", err));
-  }, []);
 
   const homeContent = settings?.homeContent || {
     heroTitle: "Parc Bayouta",
@@ -294,20 +284,6 @@ export default function Home() {
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
                   transition={{ delay: index * 0.1 }}
-<<<<<<< HEAD
-                  className="bg-card rounded-2xl overflow-hidden shadow-card card-hover flex flex-col h-full group text-left"
-                >
-                  <div className="relative aspect-[16/10] overflow-hidden">
-                    <img
-                      src={event.image}
-                      alt={event.title}
-                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-80" />
-                    <div className="absolute top-3 left-3">
-                      <span
-                        className={`px-3 py-1 rounded-full text-xs font-semibold backdrop-blur-md shadow-sm border border-white/10 ${getCategoryColor(event.category)}`}
-=======
                   className="bg-card rounded-2xl overflow-hidden shadow-card card-hover group"
                 >
                   <div className="relative h-40">
@@ -318,7 +294,7 @@ export default function Home() {
                         className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                       />
                     ) : (
-                      <div className={`w-full h-full transition-transform duration-500 group-hover:scale-105 ${event.category === 'movie' ? 'bg-gradient-to-br from-blue-600 to-blue-900' :
+                      <div className={`w - full h - full transition - transform duration - 500 group - hover: scale - 105 ${event.category === 'movie' ? 'bg-gradient-to-br from-blue-600 to-blue-900' :
                         event.category === 'gaming' ? 'bg-gradient-to-br from-purple-600 to-purple-900' :
                           event.category === 'party' ? 'bg-gradient-to-br from-pink-600 to-pink-900' :
                             event.category === 'kids' ? 'bg-gradient-to-br from-orange-500 to-orange-800' :
@@ -329,7 +305,6 @@ export default function Home() {
                     <div className="absolute top-3 left-3">
                       <span
                         className={`px-3 py-1 rounded-full text-xs font-medium backdrop-blur-sm ${getCategoryColor(event.category)}`}
->>>>>>> 2441a2b46f75f4c431763d2868b34eac10db9dc8
                       >
                         {getCategoryLabel(event.category)}
                       </span>

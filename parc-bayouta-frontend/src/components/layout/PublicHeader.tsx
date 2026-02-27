@@ -63,20 +63,6 @@ export const PublicHeader = () => {
 
         {/* Desktop Navigation */}
         <nav className="hidden lg:flex items-center gap-6">
-<<<<<<< HEAD
-          {navLinks.map((link) => (
-            <Link
-              key={link.name}
-              to={link.href}
-              className={`text-sm font-medium transition-colors hover:text-primary ${location.pathname === link.href
-                  ? "text-primary"
-                  : textColor
-                }`}
-            >
-              {link.name}
-            </Link>
-          ))}
-=======
           {navLinks.map((link) => {
             const isActive = location.pathname === link.href ||
               (link.href !== "/" && location.pathname.startsWith(link.href));
@@ -96,7 +82,6 @@ export const PublicHeader = () => {
               </Link>
             );
           })}
->>>>>>> 2441a2b46f75f4c431763d2868b34eac10db9dc8
         </nav>
 
         {/* CTA Buttons */}
@@ -137,23 +122,6 @@ export const PublicHeader = () => {
             exit={{ opacity: 0, height: 0 }}
             className="lg:hidden bg-background/95 backdrop-blur-md border-t border-border"
           >
-<<<<<<< HEAD
-            <nav className="container mx-auto px-4 py-6 flex flex-col gap-4">
-              {navLinks.map((link) => (
-                <Link
-                  key={link.name}
-                  to={link.href}
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className={`font-medium py-2 transition-colors ${location.pathname === link.href
-                      ? "text-primary"
-                      : "text-foreground hover:text-primary"
-                    }`}
-                >
-                  {link.name}
-                </Link>
-              ))}
-              <Button className="mt-4" asChild>
-=======
             <nav className="container mx-auto px-4 py-6 flex flex-col gap-2">
               {navLinks.map((link) => {
                 const isActive = location.pathname === link.href ||
@@ -165,8 +133,8 @@ export const PublicHeader = () => {
                     to={link.href}
                     onClick={() => setIsMobileMenuOpen(false)}
                     className={`font-medium py-3 px-4 rounded-lg transition-all duration-200 ${isActive
-                        ? "bg-primary/10 text-primary"
-                        : "text-foreground hover:bg-muted hover:text-primary"
+                      ? "bg-primary/10 text-primary"
+                      : "text-foreground hover:bg-muted hover:text-primary"
                       }`}
                   >
                     {link.name}
@@ -174,7 +142,6 @@ export const PublicHeader = () => {
                 );
               })}
               <Button className="mt-4 w-full" size="lg" asChild>
->>>>>>> 2441a2b46f75f4c431763d2868b34eac10db9dc8
                 <Link to="/fields" onClick={() => setIsMobileMenuOpen(false)}>
                   Réserver maintenant
                 </Link>

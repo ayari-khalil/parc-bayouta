@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Calendar, PartyPopper, Coffee, CalendarDays, ArrowRight, ChevronDown, Check } from "lucide-react";
@@ -11,6 +12,7 @@ import { events, getCategoryLabel, getCategoryColor } from "@/data/mockData";
 import { format, parseISO } from "date-fns";
 import { fr } from "date-fns/locale";
 import { PublicLayout } from "@/components/layout/PublicLayout";
+import { getSettings, Settings } from "@/api/settingsApi";
 
 const services = [
   {
@@ -42,11 +44,22 @@ const services = [
   },
 ];
 
-const upcomingEvents = events.filter((e) => e.isActive && e.isFeatured).slice(0, 3);
-
 export default function Home() {
+  const [settings, setSettings] = useState<Settings | null>(null);
+  const upcomingEvents = events.filter((e) => e.isActive && e.isFeatured).slice(0, 3);
+
   const scrollToServices = () => {
     document.getElementById("services")?.scrollIntoView({ behavior: "smooth" });
+  };
+
+  useEffect(() => {
+    getSettings().then(setSettings).catch(err => console.error("Failed to fetch home page settings", err));
+  }, []);
+
+  const homeContent = settings?.homeContent || {
+    heroTitle: "Parc Bayouta",
+    heroSubtitle: "Sport, détente et événements",
+    heroDescription: "Un espace familial unique alliant terrains de mini-foot, salle des fêtes et café-restaurant pour tous vos moments de convivialité."
   };
 
   return (
@@ -80,8 +93,16 @@ export default function Home() {
               Bienvenue à El Alia
             </span>
 
-            <p className="text-xl md:text-2xl text-primary-foreground/90 max-w-2xl mx-auto mb-10">
-              Sport, détente et événements dans un cadre exceptionnel
+            <h1 className="font-display text-5xl md:text-6xl lg:text-7xl font-bold text-primary-foreground mb-6 leading-tight">
+              {homeContent.heroTitle}
+            </h1>
+
+            <p className="text-xl md:text-2xl text-primary-foreground/90 max-w-2xl mx-auto mb-4">
+              {homeContent.heroSubtitle}
+            </p>
+
+            <p className="text-lg text-primary-foreground/80 max-w-2xl mx-auto mb-10">
+              {homeContent.heroDescription}
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
@@ -213,33 +234,49 @@ export default function Home() {
             <div className="grid md:grid-cols-3 gap-6">
               {upcomingEvents.map((event, index) => (
                 <motion.div
-                  key={event.id}
+                  key={event._id || event.id}
                   initial={{ opacity: 0, y: 20 }}
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
                   transition={{ delay: index * 0.1 }}
-                  className="bg-card rounded-2xl overflow-hidden shadow-card card-hover"
+                  className="bg-card rounded-2xl overflow-hidden shadow-card card-hover flex flex-col h-full group text-left"
                 >
-                  <div className="relative h-40">
-                    <img src={event.image} alt={event.title} className="w-full h-full object-cover" />
+                  <div className="relative aspect-[16/10] overflow-hidden">
+                    <img
+                      src={event.image}
+                      alt={event.title}
+                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-80" />
                     <div className="absolute top-3 left-3">
                       <span
-                        className={`px-3 py-1 rounded-full text-xs font-medium ${getCategoryColor(event.category)}`}
+                        className={`px-3 py-1 rounded-full text-xs font-semibold backdrop-blur-md shadow-sm border border-white/10 ${getCategoryColor(event.category)}`}
                       >
                         {getCategoryLabel(event.category)}
                       </span>
                     </div>
+                    <div className="absolute bottom-3 left-3">
+                      <div className="flex items-center gap-1.5 text-white text-xs font-medium drop-shadow-md">
+                        <CalendarDays className="w-3.5 h-3.5" />
+                        <span>{format(parseISO(event.date || new Date().toISOString()), "EEEE d MMMM", { locale: fr })}</span>
+                      </div>
+                    </div>
                   </div>
-                  <div className="p-5">
-                    <p className="text-sm text-primary font-medium mb-1">
-                      {format(parseISO(event.date), "EEEE d MMMM", { locale: fr })} • {event.time}
-                    </p>
-                    <h3 className="font-display text-lg font-bold text-foreground mb-2 line-clamp-1">{event.title}</h3>
-                    <p className="text-sm text-muted-foreground line-clamp-2 mb-4">{event.description}</p>
-                    <div className="flex items-center justify-between">
-                      <span className="text-lg font-bold text-primary">{event.price.toLocaleString()} DA</span>
-                      <Button size="sm" asChild>
-                        <Link to={`/events/${event.slug}`}>Voir détails</Link>
+                  <div className="p-5 flex flex-col flex-grow">
+                    <div className="flex-grow">
+                      <h3 className="font-display text-lg font-bold text-foreground mb-2 line-clamp-1 group-hover:text-primary transition-colors">
+                        {event.title}
+                      </h3>
+                      <p className="text-sm text-muted-foreground line-clamp-2 mb-4 leading-relaxed">
+                        {event.description}
+                      </p>
+                    </div>
+                    <div className="pt-4 mt-auto border-t border-border flex items-center justify-between">
+                      <span className="text-lg font-bold text-primary">
+                        {event.price.toLocaleString()} DT
+                      </span>
+                      <Button size="sm" variant="outline" className="rounded-xl" asChild>
+                        <Link to={`/events/${event.slug || event._id}`}>Réserver</Link>
                       </Button>
                     </div>
                   </div>

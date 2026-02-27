@@ -55,6 +55,7 @@ export interface MenuItem {
 
 export interface Event {
   id: string;
+  _id?: string;
   slug: string;
   title: string;
   description: string;

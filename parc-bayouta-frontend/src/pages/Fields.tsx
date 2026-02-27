@@ -168,11 +168,13 @@ export default function Fields() {
               className="lg:col-span-1"
             >
               <div className="bg-card rounded-2xl overflow-hidden shadow-card sticky top-24">
-                <img
-                  src={terrainImg}
-                  alt="Terrain de mini-foot"
-                  className="w-full h-48 object-cover"
-                />
+                <div className="relative aspect-[4/3] overflow-hidden bg-muted">
+                  <img
+                    src={terrainImg}
+                    alt="Terrain de mini-foot"
+                    className="w-full h-full object-cover transition-transform duration-500 hover:scale-105"
+                  />
+                </div>
                 <div className="p-6">
                   <h3 className="font-display text-2xl font-bold text-foreground mb-4">
                     Nos Terrains

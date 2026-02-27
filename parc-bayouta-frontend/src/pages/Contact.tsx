@@ -1,44 +1,15 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Phone, Mail, MapPin, Clock, Send, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { PublicLayout } from "@/components/layout/PublicLayout";
 import { useToast } from "@/hooks/use-toast";
-
-const contactInfo = [
-  {
-    icon: Phone,
-    label: "Téléphone",
-    value: "+216 555 123 456",
-    href: "tel:+216555123456",
-  },
-  {
-    icon: MessageCircle,
-    label: "WhatsApp",
-    value: "+216 555 123 456",
-    href: "https://wa.me/213555123456",
-  },
-  {
-    icon: Mail,
-    label: "Email",
-    value: "contact@parcbayouta.tn",
-    href: "mailto:contact@parcbayouta.tn",
-  },
-  {
-    icon: MapPin,
-    label: "Adresse",
-    value: "Route principale, El Alia, Khitmine, Bizerte",
-    href: "https://maps.google.com",
-  },
-];
-
-const hours = [
-  { day: "Lundi - Jeudi", time: "08:00 - 23:00" },
-  { day: "Vendredi", time: "14:00 - 23:00" },
-  { day: "Samedi - Dimanche", time: "08:00 - 00:00" },
-];
+import { getSettings, Settings } from "@/api/settingsApi";
+import { submitMessage } from "@/api/contactApi";
 
 export default function Contact() {
+  const [settings, setSettings] = useState<Settings | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -48,13 +19,75 @@ export default function Contact() {
   });
   const { toast } = useToast();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  useEffect(() => {
+    getSettings().then(setSettings).catch(err => console.error("Failed to fetch contact page settings", err));
+  }, []);
+
+  const parkInfo = settings?.parkInfo || {
+    phone: "+216 555 123 456",
+    whatsapp: "+216 555 123 456",
+    email: "contact@parcbayouta.tn",
+    address: "Route principale, El Alia, Khitmine, Bizerte"
+  };
+
+  const openingHours = settings?.openingHours || {
+    weekdays: "08:00 - 23:00",
+    friday: "14:00 - 23:00",
+    weekend: "08:00 - 00:00"
+  };
+
+  const contactInfo = [
+    {
+      icon: Phone,
+      label: "Téléphone",
+      value: parkInfo.phone,
+      href: `tel:${parkInfo.phone.replace(/\s/g, '')}`,
+    },
+    {
+      icon: MessageCircle,
+      label: "WhatsApp",
+      value: parkInfo.whatsapp,
+      href: `https://wa.me/${parkInfo.whatsapp.replace(/\+/g, '').replace(/\s/g, '')}`,
+    },
+    {
+      icon: Mail,
+      label: "Email",
+      value: parkInfo.email,
+      href: `mailto:${parkInfo.email}`,
+    },
+    {
+      icon: MapPin,
+      label: "Adresse",
+      value: parkInfo.address,
+      href: "https://maps.google.com",
+    },
+  ];
+
+  const hours = [
+    { day: "Lundi - Jeudi", time: openingHours.weekdays },
+    { day: "Vendredi", time: openingHours.friday },
+    { day: "Samedi - Dimanche", time: openingHours.weekend },
+  ];
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    toast({
-      title: "Message envoyé !",
-      description: "Nous vous répondrons dans les plus brefs délais.",
-    });
-    setFormData({ name: "", email: "", phone: "", subject: "", message: "" });
+    setIsSubmitting(true);
+    try {
+      await submitMessage(formData);
+      toast({
+        title: "Message envoyé !",
+        description: "Nous vous répondrons dans les plus brefs délais.",
+      });
+      setFormData({ name: "", email: "", phone: "", subject: "", message: "" });
+    } catch (error) {
+      toast({
+        title: "Erreur",
+        description: "Impossible d'envoyer le message. Veuillez réessayer.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -236,9 +269,9 @@ export default function Contact() {
                       }
                     />
                   </div>
-                  <Button type="submit" variant="hero" size="lg" className="w-full">
+                  <Button type="submit" variant="hero" size="lg" className="w-full" disabled={isSubmitting}>
                     <Send className="w-5 h-5" />
-                    Envoyer le message
+                    {isSubmitting ? "Envoi en cours..." : "Envoyer le message"}
                   </Button>
                 </form>
               </div>

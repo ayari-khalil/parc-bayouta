@@ -1,42 +1,15 @@
 import { motion } from "framer-motion";
 import { Phone, Mail, MapPin, Clock, Send, MessageCircle } from "lucide-react";
 import { Button } from "./ui/button";
-import { useState } from "react";
-
-const contactInfo = [
-  {
-    icon: Phone,
-    label: "Téléphone",
-    value: "+213 555 123 456",
-    href: "tel:+213555123456",
-  },
-  {
-    icon: MessageCircle,
-    label: "WhatsApp",
-    value: "+213 555 123 456",
-    href: "https://wa.me/213555123456",
-  },
-  {
-    icon: Mail,
-    label: "Email",
-    value: "contact@parcbayouta.dz",
-    href: "mailto:contact@parcbayouta.dz",
-  },
-  {
-    icon: MapPin,
-    label: "Adresse",
-    value: "Route principale, El Alia, Algérie",
-    href: "https://maps.google.com",
-  },
-];
-
-const hours = [
-  { day: "Lundi - Jeudi", time: "08:00 - 23:00" },
-  { day: "Vendredi", time: "14:00 - 23:00" },
-  { day: "Samedi - Dimanche", time: "08:00 - 00:00" },
-];
+import { useState, useEffect } from "react";
+import { getSettings, Settings } from "@/api/settingsApi";
+import { useToast } from "@/hooks/use-toast";
+import { submitMessage } from "@/api/contactApi";
 
 export const ContactSection = () => {
+  const { toast } = useToast();
+  const [settings, setSettings] = useState<Settings | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
     email: "",
@@ -45,10 +18,75 @@ export const ContactSection = () => {
     message: "",
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  useEffect(() => {
+    getSettings().then(setSettings).catch(err => console.error("Failed to fetch contact settings", err));
+  }, []);
+
+  const parkInfo = settings?.parkInfo || {
+    phone: "+213 555 123 456",
+    whatsapp: "+213 555 123 456",
+    email: "contact@parcbayouta.dz",
+    address: "Route principale, El Alia, Algérie"
+  };
+
+  const openingHours = settings?.openingHours || {
+    weekdays: "08:00 - 23:00",
+    friday: "14:00 - 23:00",
+    weekend: "08:00 - 00:00"
+  };
+
+  const contactInfo = [
+    {
+      icon: Phone,
+      label: "Téléphone",
+      value: parkInfo.phone,
+      href: `tel:${parkInfo.phone.replace(/\s/g, '')}`,
+    },
+    {
+      icon: MessageCircle,
+      label: "WhatsApp",
+      value: parkInfo.whatsapp,
+      href: `https://wa.me/${parkInfo.whatsapp.replace(/\+/g, '').replace(/\s/g, '')}`,
+    },
+    {
+      icon: Mail,
+      label: "Email",
+      value: parkInfo.email,
+      href: `mailto:${parkInfo.email}`,
+    },
+    {
+      icon: MapPin,
+      label: "Adresse",
+      value: parkInfo.address,
+      href: "https://maps.google.com",
+    },
+  ];
+
+  const hours = [
+    { day: "Lundi - Jeudi", time: openingHours.weekdays },
+    { day: "Vendredi", time: openingHours.friday },
+    { day: "Samedi - Dimanche", time: openingHours.weekend },
+  ];
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Handle form submission
-    console.log(formData);
+    setIsSubmitting(true);
+    try {
+      await submitMessage(formData);
+      toast({
+        title: "Message envoyé !",
+        description: "Nous vous répondrons dans les plus brefs délais.",
+      });
+      setFormData({ name: "", email: "", phone: "", subject: "", message: "" });
+    } catch (error) {
+      toast({
+        title: "Erreur",
+        description: "Impossible d'envoyer le message. Veuillez réessayer.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -227,9 +265,9 @@ export const ContactSection = () => {
                     }
                   />
                 </div>
-                <Button type="submit" variant="hero" size="lg" className="w-full">
+                <Button type="submit" variant="hero" size="lg" className="w-full" disabled={isSubmitting}>
                   <Send className="w-5 h-5" />
-                  Envoyer le message
+                  {isSubmitting ? "Envoi en cours..." : "Envoyer le message"}
                 </Button>
               </form>
             </div>

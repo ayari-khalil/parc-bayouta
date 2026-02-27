@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Menu, X, Phone } from "lucide-react";
 import { Button } from "./ui/button";
+import { getSettings, Settings } from "@/api/settingsApi";
 
 const navLinks = [
   { name: "Accueil", href: "#accueil" },
@@ -14,12 +15,14 @@ const navLinks = [
 export const Header = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [settings, setSettings] = useState<Settings | null>(null);
 
   useEffect(() => {
     const handleScroll = () => {
       setIsScrolled(window.scrollY > 50);
     };
     window.addEventListener("scroll", handleScroll);
+    getSettings().then(setSettings).catch(err => console.error("Failed to fetch header settings", err));
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
@@ -30,6 +33,8 @@ export const Header = () => {
     }
     setIsMobileMenuOpen(false);
   };
+
+  const phone = settings?.parkInfo?.phone || "+213 555 123 456";
 
   return (
     <motion.header
@@ -84,10 +89,10 @@ export const Header = () => {
 
         {/* CTA Button */}
         <div className="hidden lg:flex items-center gap-4">
-          <a href="tel:+213555123456" className="flex items-center gap-2">
+          <a href={`tel:${phone.replace(/\s/g, '')}`} className="flex items-center gap-2">
             <Phone className={`w-4 h-4 ${isScrolled ? 'text-primary' : 'text-primary-foreground'}`} />
             <span className={`text-sm font-medium ${isScrolled ? 'text-foreground' : 'text-primary-foreground'}`}>
-              +213 555 123 456
+              {phone}
             </span>
           </a>
           <Button

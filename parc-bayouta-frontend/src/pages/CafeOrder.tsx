@@ -196,11 +196,11 @@ export default function CafeOrder() {
                         {filteredItems.map((item) => (
                             <div
                                 key={item.id}
-                                className="bg-card border border-border/40 rounded-2xl overflow-hidden shadow-sm flex flex-col group"
+                                className="bg-card border border-border/40 rounded-2xl overflow-hidden shadow-sm flex flex-col group transition-all hover:shadow-md"
                             >
-                                <div className="relative h-32 sm:h-48 w-full bg-muted overflow-hidden">
+                                <div className="relative aspect-[4/3] w-full bg-muted overflow-hidden">
                                     {item.image ? (
-                                        <img src={item.image} alt={item.name} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                                        <img src={`${API_URL}${item.image.startsWith('/') ? '' : '/'}${item.image}`} alt={item.name} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
                                     ) : (
                                         <div className="w-full h-full flex items-center justify-center text-muted-foreground/20">
                                             <UtensilsCrossed className="w-8 h-8 sm:w-12 sm:h-12" />
@@ -236,25 +236,25 @@ export default function CafeOrder() {
                     <div className="flex gap-2">
                         <Button
                             variant="outline"
-                            className="rounded-xl px-4 h-12 border-border"
+                            className="rounded-xl px-3 sm:px-4 h-12 border-border gap-2"
                             onClick={() => {
                                 setStaffAction('waiter_call');
                                 setShowTableModal(true);
                             }}
                         >
-                            <BellRing className="w-5 h-5 mr-2 text-accent" />
-                            <span className="hidden sm:inline">Serveur</span>
+                            <BellRing className="w-4 h-4 sm:w-5 sm:h-5 text-accent" />
+                            <span className="text-xs sm:text-sm font-medium">Serveur</span>
                         </Button>
                         <Button
                             variant="outline"
-                            className="rounded-xl px-4 h-12 border-border"
+                            className="rounded-xl px-3 sm:px-4 h-12 border-border gap-2"
                             onClick={() => {
                                 setStaffAction('bill_request');
                                 setShowTableModal(true);
                             }}
                         >
-                            <Receipt className="w-5 h-5 mr-2 text-accent" />
-                            <span className="hidden sm:inline">Addition</span>
+                            <Receipt className="w-4 h-4 sm:w-5 sm:h-5 text-accent" />
+                            <span className="text-xs sm:text-sm font-medium">Addition</span>
                         </Button>
                     </div>
 
@@ -262,10 +262,10 @@ export default function CafeOrder() {
                         <SheetTrigger asChild>
                             <Button
                                 variant="accent"
-                                className="rounded-xl h-12 px-6 gap-3 shadow-sm relative font-bold"
+                                className="rounded-xl h-12 px-4 sm:px-6 gap-2 sm:gap-3 shadow-sm relative font-bold"
                             >
-                                <ShoppingCart className="w-5 h-5" />
-                                <span>Voir mon panier</span>
+                                <ShoppingCart className="w-4 h-4 sm:w-5 sm:h-5" />
+                                <span className="text-xs sm:text-sm">Panier</span>
                                 {cartCount > 0 && (
                                     <span className="absolute -top-2 -right-2 bg-foreground text-background text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center border-2 border-background">
                                         {cartCount}
@@ -288,7 +288,7 @@ export default function CafeOrder() {
                                     >
                                         <div className="w-20 h-20 rounded-xl overflow-hidden flex-shrink-0 bg-muted border border-border/10">
                                             {item.image ? (
-                                                <img src={item.image} alt={item.name} className="w-full h-full object-cover" />
+                                                <img src={`${API_URL}${item.image.startsWith('/') ? '' : '/'}${item.image}`} alt={item.name} className="w-full h-full object-cover" />
                                             ) : (
                                                 <div className="w-full h-full flex items-center justify-center text-muted-foreground/20">
                                                     <UtensilsCrossed className="w-8 h-8" />
@@ -386,6 +386,7 @@ export default function CafeOrder() {
                             animate={{ opacity: 1, scale: 1, y: 0 }}
                             exit={{ opacity: 0, scale: 0.9, y: 20 }}
                             className="relative bg-card border border-border/40 w-full max-w-sm rounded-[3rem] p-10 shadow-2xl"
+                            onClick={(e) => e.stopPropagation()}
                         >
                             <Button
                                 variant="ghost"
@@ -411,14 +412,15 @@ export default function CafeOrder() {
 
                             <div className="space-y-8">
                                 <div className="relative group">
+                                    <div className="absolute inset-0 rounded-3xl pointer-events-none group-focus-within:ring-4 ring-accent/10 transition-all duration-300 z-0" />
                                     <Input
-                                        autoFocus
-                                        placeholder="N° de table"
+                                        type="number"
+                                        inputMode="numeric"
+                                        placeholder="N° table"
                                         value={tableNumber}
                                         onChange={(e) => setTableNumber(e.target.value)}
-                                        className="h-20 text-center text-4xl font-black rounded-3xl border-border/40 focus-visible:ring-accent bg-muted/30 border-2 transition-all duration-300 focus:border-accent group-hover:border-accent/20"
+                                        className="relative z-10 h-20 text-center text-4xl font-black rounded-3xl border-border/40 focus-visible:ring-accent bg-card border-2 transition-all duration-300 focus:border-accent group-hover:border-accent/20"
                                     />
-                                    <div className="absolute inset-0 rounded-3xl pointer-events-none group-focus-within:ring-4 ring-accent/10 transition-all duration-300" />
                                 </div>
                                 <Button
                                     className="w-full h-16 rounded-[1.5rem] text-xl font-black gap-4 shadow-2xl shadow-accent/20 transition-all duration-300 hover:shadow-accent/40 active:scale-95 py-4"

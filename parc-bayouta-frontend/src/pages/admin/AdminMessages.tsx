@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Search, Mail, Phone, Eye, Archive, Check, Trash2, Download, MessageSquare } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Search, Mail, Phone, Eye, Archive, Check, Trash2, Download, MessageSquare, Loader2 } from "lucide-react";
 import { AdminLayout } from "@/components/layout/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -31,23 +31,44 @@ import {
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import {
-  contactMessages,
   getStatusColor,
-  getStatusLabel,
-  ContactMessage
+  getStatusLabel
 } from "@/data/mockData";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
+import { getMessages, updateMessageStatus, deleteMessage, ContactMessage } from "@/api/contactApi";
 
 export default function AdminMessages() {
   const { toast } = useToast();
+  const [messages, setMessages] = useState<ContactMessage[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [selectedMessage, setSelectedMessage] = useState<ContactMessage | null>(null);
   const [deleteMessageId, setDeleteMessageId] = useState<string | null>(null);
 
+  useEffect(() => {
+    fetchMessages();
+  }, []);
+
+  const fetchMessages = async () => {
+    setLoading(true);
+    try {
+      const data = await getMessages();
+      setMessages(data);
+    } catch (error) {
+      toast({
+        title: "Erreur",
+        description: "Impossible de charger les messages.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Filter messages
-  const filteredMessages = contactMessages.filter(msg => {
+  const filteredMessages = messages.filter(msg => {
     const matchesSearch =
       msg.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       msg.subject.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -57,20 +78,41 @@ export default function AdminMessages() {
     return matchesSearch && matchesStatus;
   });
 
-  const handleStatusChange = (messageId: string, newStatus: 'processed' | 'archived') => {
-    toast({
-      title: newStatus === 'processed' ? "Message traité" : "Message archivé",
-      description: `Le message a été marqué comme ${newStatus === 'processed' ? 'traité' : 'archivé'}.`,
-    });
-    setSelectedMessage(null);
+  const handleStatusChange = async (messageId: string, newStatus: 'processed' | 'archived') => {
+    try {
+      await updateMessageStatus(messageId, newStatus);
+      toast({
+        title: newStatus === 'processed' ? "Message traité" : "Message archivé",
+        description: `Le message a été marqué comme ${newStatus === 'processed' ? 'traité' : 'archivé'}.`,
+      });
+      fetchMessages();
+      setSelectedMessage(null);
+    } catch (error) {
+      toast({
+        title: "Erreur",
+        description: "Impossible de mettre à jour le statut.",
+        variant: "destructive",
+      });
+    }
   };
 
-  const handleDeleteMessage = () => {
-    toast({
-      title: "Message supprimé",
-      description: "Le message a été supprimé avec succès.",
-    });
-    setDeleteMessageId(null);
+  const handleDeleteMessage = async () => {
+    if (!deleteMessageId) return;
+    try {
+      await deleteMessage(deleteMessageId);
+      toast({
+        title: "Message supprimé",
+        description: "Le message a été supprimé avec succès.",
+      });
+      fetchMessages();
+      setDeleteMessageId(null);
+    } catch (error) {
+      toast({
+        title: "Erreur",
+        description: "Impossible de supprimer le message.",
+        variant: "destructive",
+      });
+    }
   };
 
   const handleExportCSV = () => {
@@ -104,7 +146,7 @@ export default function AdminMessages() {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{contactMessages.length}</div>
+              <div className="text-2xl font-bold">{messages.length}</div>
             </CardContent>
           </Card>
           <Card>
@@ -115,7 +157,7 @@ export default function AdminMessages() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-blue-600">
-                {contactMessages.filter(m => m.status === 'new').length}
+                {messages.filter(m => m.status === 'new').length}
               </div>
             </CardContent>
           </Card>
@@ -127,7 +169,7 @@ export default function AdminMessages() {
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-green-600">
-                {contactMessages.filter(m => m.status === 'processed').length}
+                {messages.filter(m => m.status === 'processed').length}
               </div>
             </CardContent>
           </Card>
@@ -185,86 +227,94 @@ export default function AdminMessages() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredMessages.map((message) => (
-                    <TableRow key={message.id} className={message.status === 'new' ? 'bg-blue-50/50' : ''}>
-                      <TableCell className="whitespace-nowrap">
-                        {format(new Date(message.createdAt), 'dd/MM/yyyy', { locale: fr })}
-                        <div className="text-xs text-muted-foreground">
-                          {format(new Date(message.createdAt), 'HH:mm')}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="min-w-[150px]">
-                          <div className="font-medium">{message.name}</div>
-                          <div className="text-sm text-muted-foreground flex items-center gap-1">
-                            <Phone className="w-3 h-3" />
-                            {message.phone}
-                          </div>
-                          {message.email && (
-                            <div className="text-sm text-muted-foreground flex items-center gap-1">
-                              <Mail className="w-3 h-3" />
-                              {message.email}
-                            </div>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell className="font-medium italic min-w-[120px]">{message.subject}</TableCell>
-                      <TableCell>
-                        <p className="text-sm text-muted-foreground truncate max-w-[200px]">
-                          {message.message}
-                        </p>
-                      </TableCell>
-                      <TableCell>
-                        <Badge className={getStatusColor(message.status)}>
-                          {getStatusLabel(message.status)}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-1">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => setSelectedMessage(message)}
-                          >
-                            <Eye className="w-4 h-4" />
-                          </Button>
-                          {message.status === 'new' && (
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="text-green-600 hover:text-green-700"
-                              onClick={() => handleStatusChange(message.id, 'processed')}
-                            >
-                              <Check className="w-4 h-4" />
-                            </Button>
-                          )}
-                          {message.status !== 'archived' && (
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => handleStatusChange(message.id, 'archived')}
-                            >
-                              <Archive className="w-4 h-4" />
-                            </Button>
-                          )}
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="text-destructive hover:text-destructive"
-                            onClick={() => setDeleteMessageId(message.id)}
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </div>
+                  {loading ? (
+                    <TableRow>
+                      <TableCell colSpan={6} className="text-center py-12">
+                        <Loader2 className="w-8 h-8 animate-spin mx-auto text-primary" />
+                        <p className="mt-2 text-muted-foreground">Chargement des messages...</p>
                       </TableCell>
                     </TableRow>
-                  ))}
-                  {filteredMessages.length === 0 && (
+                  ) : filteredMessages.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
                         Aucun message trouvé
                       </TableCell>
                     </TableRow>
+                  ) : (
+                    filteredMessages.map((message) => (
+                      <TableRow key={message.id} className={message.status === 'new' ? 'bg-blue-50/50' : ''}>
+                        <TableCell className="whitespace-nowrap">
+                          {format(new Date(message.createdAt), 'dd/MM/yyyy', { locale: fr })}
+                          <div className="text-xs text-muted-foreground">
+                            {format(new Date(message.createdAt), 'HH:mm')}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="min-w-[150px]">
+                            <div className="font-medium">{message.name}</div>
+                            <div className="text-sm text-muted-foreground flex items-center gap-1">
+                              <Phone className="w-3 h-3" />
+                              {message.phone}
+                            </div>
+                            {message.email && (
+                              <div className="text-sm text-muted-foreground flex items-center gap-1">
+                                <Mail className="w-3 h-3" />
+                                {message.email}
+                              </div>
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell className="font-medium italic min-w-[120px]">{message.subject}</TableCell>
+                        <TableCell>
+                          <p className="text-sm text-muted-foreground truncate max-w-[200px]">
+                            {message.message}
+                          </p>
+                        </TableCell>
+                        <TableCell>
+                          <Badge className={getStatusColor(message.status)}>
+                            {getStatusLabel(message.status)}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="flex justify-end gap-1">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              onClick={() => setSelectedMessage(message)}
+                            >
+                              <Eye className="w-4 h-4" />
+                            </Button>
+                            {message.status === 'new' && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="text-green-600 hover:text-green-700"
+                                onClick={() => handleStatusChange(message.id, 'processed')}
+                              >
+                                <Check className="w-4 h-4" />
+                              </Button>
+                            )}
+                            {message.status !== 'archived' && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleStatusChange(message.id, 'archived')}
+                              >
+                                <Archive className="w-4 h-4" />
+                              </Button>
+                            )}
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="text-destructive hover:text-destructive"
+                              onClick={() => setDeleteMessageId(message.id)}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))
                   )}
                 </TableBody>
               </Table>

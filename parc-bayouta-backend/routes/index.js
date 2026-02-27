@@ -9,6 +9,7 @@ const contactRoute = require('./contact.route');
 const auditRoute = require('./audit.route');
 const orderRoute = require('./order.route');
 const notificationRoute = require('./notification.route');
+const settingRoute = require('./setting.route');
 const router = express.Router();
 
 router.use('/hall-reservations', hallReservationRoute);
@@ -21,6 +22,7 @@ router.use('/messages', contactRoute);
 router.use('/audit', auditRoute);
 router.use('/orders', orderRoute);
 router.use('/notifications', notificationRoute);
+router.use('/settings', settingRoute);
 
 router.get('/health', (req, res) => {
     res.send('OK');

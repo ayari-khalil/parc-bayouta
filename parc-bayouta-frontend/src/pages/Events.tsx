@@ -214,17 +214,17 @@ export default function Events() {
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
                     transition={{ delay: index * 0.05 }}
-                    className="bg-card rounded-2xl overflow-hidden shadow-card card-hover group"
+                    className="bg-card rounded-2xl overflow-hidden shadow-card card-hover group flex flex-col h-full"
                   >
-                    <div className="relative h-48">
+                    <div className="relative aspect-[16/10] overflow-hidden">
                       {event.image ? (
                         <img
                           src={event.image}
                           alt={event.title}
-                          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                         />
                       ) : (
-                        <div className={`w-full h-full transition-transform duration-500 group-hover:scale-105 ${event.category === 'movie' ? 'bg-gradient-to-br from-blue-600 to-blue-900' :
+                        <div className={`w-full h-full transition-transform duration-500 group-hover:scale-110 ${event.category === 'movie' ? 'bg-gradient-to-br from-blue-600 to-blue-900' :
                           event.category === 'gaming' ? 'bg-gradient-to-br from-purple-600 to-purple-900' :
                             event.category === 'party' ? 'bg-gradient-to-br from-pink-600 to-pink-900' :
                               event.category === 'kids' ? 'bg-gradient-to-br from-orange-500 to-orange-800' :
@@ -232,54 +232,62 @@ export default function Events() {
                                   'bg-gradient-to-br from-gray-600 to-gray-900'
                           }`} />
                       )}
-                      <div className="absolute inset-0 bg-gradient-to-t from-foreground/60 to-transparent" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-80" />
                       <div className="absolute top-3 left-3 flex gap-2">
-                        <span className={`px-3 py-1 rounded-full text-xs font-medium backdrop-blur-sm ${getCategoryColor(event.category)}`}>
+                        <span className={`px-3 py-1 rounded-full text-xs font-semibold backdrop-blur-md shadow-sm border border-white/10 ${getCategoryColor(event.category)}`}>
                           {getCategoryLabel(event.category)}
                         </span>
                         {event.isFeatured && (
-                          <span className="px-3 py-1 rounded-full text-xs font-medium bg-accent/90 text-accent-foreground backdrop-blur-sm">
+                          <span className="px-3 py-1 rounded-full text-xs font-semibold bg-accent text-accent-foreground shadow-sm backdrop-blur-sm border border-white/10">
                             À la une
                           </span>
                         )}
                       </div>
                       <div className="absolute bottom-3 left-3 right-3">
-                        <p className="text-primary-foreground text-sm font-medium">
-                          {format(parseISO(event.date), "EEEE d MMMM", { locale: fr })} • {event.time}
-                        </p>
+                        <div className="flex items-center gap-1.5 text-white text-sm font-medium drop-shadow-md">
+                          <CalendarDays className="w-3.5 h-3.5" />
+                          <span>{format(parseISO(event.date), "EEEE d MMMM", { locale: fr })}</span>
+                          <span className="opacity-70">•</span>
+                          <span>{event.time}</span>
+                        </div>
                       </div>
                     </div>
-                    <div className="p-5">
-                      <h3 className="font-display text-xl font-bold text-foreground mb-2 line-clamp-1">
-                        {event.title}
-                      </h3>
-                      <p className="text-sm text-muted-foreground line-clamp-2 mb-4">
-                        {event.description}
-                      </p>
+                    <div className="p-5 flex flex-col flex-grow">
+                      <div className="flex-grow">
+                        <h3 className="font-display text-xl font-bold text-foreground mb-2 line-clamp-1 group-hover:text-primary transition-colors">
+                          {event.title}
+                        </h3>
+                        <p className="text-sm text-muted-foreground line-clamp-2 mb-4 leading-relaxed">
+                          {event.description}
+                        </p>
 
-                      <div className="flex items-center gap-4 text-sm text-muted-foreground mb-4">
-                        <div className="flex items-center gap-1">
-                          <MapPin className="w-4 h-4" />
-                          {event.location}
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <Users className="w-4 h-4" />
-                          {isFull ? (
-                            <span className="text-destructive">Complet</span>
-                          ) : (
-                            <span>{spotsLeft} places</span>
-                          )}
+                        <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted-foreground mb-4">
+                          <div className="flex items-center gap-1.5">
+                            <MapPin className="w-4 h-4 text-primary/70" />
+                            {event.location}
+                          </div>
+                          <div className="flex items-center gap-1.5">
+                            <Users className="w-4 h-4 text-primary/70" />
+                            {isFull ? (
+                              <span className="text-destructive font-semibold">Complet</span>
+                            ) : (
+                              <span>{spotsLeft} places dispos</span>
+                            )}
+                          </div>
                         </div>
                       </div>
 
-                      <div className="flex items-center justify-between">
-                        <span className="text-xl font-bold text-primary">
-                          {event.price.toLocaleString()} DT
-                        </span>
-                        <Button size="sm" disabled={isFull} asChild>
-                          <Link to={`/events/${event.slug}`}>
-                            Voir détails
-                            <ArrowRight className="w-4 h-4" />
+                      <div className="pt-4 mt-auto border-t border-border flex items-center justify-between">
+                        <div className="flex flex-col">
+                          <span className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Prix</span>
+                          <span className="text-lg font-bold text-primary">
+                            {event.price.toLocaleString()} DT
+                          </span>
+                        </div>
+                        <Button size="sm" variant="default" className="rounded-xl shadow-sm px-4" disabled={isFull} asChild>
+                          <Link to={`/events/${event.slug || event._id}`}>
+                            Réserver
+                            <ArrowRight className="w-4 h-4 ml-1" />
                           </Link>
                         </Button>
                       </div>

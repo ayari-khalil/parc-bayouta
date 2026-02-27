@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Menu, X, Phone } from "lucide-react";
 import { Button } from "../ui/button";
 import navbarLogo from "@/assets/logo-header.jpg";
+import { getSettings, Settings } from "@/api/settingsApi";
 
 const navLinks = [
   { name: "Accueil", href: "/" },
@@ -17,6 +18,7 @@ const navLinks = [
 export const PublicHeader = () => {
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [settings, setSettings] = useState<Settings | null>(null);
   const location = useLocation();
   const isHomePage = location.pathname === "/";
 
@@ -25,35 +27,36 @@ export const PublicHeader = () => {
       setIsScrolled(window.scrollY > 50);
     };
     window.addEventListener("scroll", handleScroll);
+    getSettings().then(setSettings).catch(err => console.error("Failed to fetch header settings", err));
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  const headerBg = isHomePage && !isScrolled 
-    ? "bg-transparent" 
+  const headerBg = isHomePage && !isScrolled
+    ? "bg-transparent"
     : "bg-background/95 backdrop-blur-md shadow-soft";
 
-  const textColor = isHomePage && !isScrolled 
-    ? "text-primary-foreground" 
+  const textColor = isHomePage && !isScrolled
+    ? "text-primary-foreground"
     : "text-foreground";
+
+  const phone = settings?.parkInfo?.phone || "+213 555 123 456";
 
   return (
     <motion.header
       initial={{ y: -100 }}
       animate={{ y: 0 }}
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${headerBg} ${
-        isScrolled ? "py-3" : "py-5"
-      }`}
+      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${headerBg} ${isScrolled ? "py-3" : "py-5"
+        }`}
     >
       <div className="container mx-auto px-4 flex items-center justify-between">
         {/* Logo */}
         <Link to="/" className="flex items-center gap-3">
           <motion.div whileHover={{ scale: 1.02 }} className="flex items-center gap-3">
-            <img 
-              src={navbarLogo} 
-              alt="Parc Bayouta" 
-              className={`object-contain rounded-xl transition-all ${
-                isScrolled ? "h-8" : "h-10"
-              }`}
+            <img
+              src={navbarLogo}
+              alt="Parc Bayouta"
+              className={`object-contain rounded-xl transition-all ${isScrolled ? "h-8" : "h-10"
+                }`}
             />
           </motion.div>
         </Link>
@@ -64,11 +67,10 @@ export const PublicHeader = () => {
             <Link
               key={link.name}
               to={link.href}
-              className={`text-sm font-medium transition-colors hover:text-primary ${
-                location.pathname === link.href 
-                  ? "text-primary" 
+              className={`text-sm font-medium transition-colors hover:text-primary ${location.pathname === link.href
+                  ? "text-primary"
                   : textColor
-              }`}
+                }`}
             >
               {link.name}
             </Link>
@@ -77,10 +79,10 @@ export const PublicHeader = () => {
 
         {/* CTA Buttons */}
         <div className="hidden lg:flex items-center gap-4">
-          <a href="tel:+213555123456" className="flex items-center gap-2">
+          <a href={`tel:${phone.replace(/\s/g, '')}`} className="flex items-center gap-2">
             <Phone className={`w-4 h-4 ${isHomePage && !isScrolled ? 'text-primary-foreground' : 'text-primary'}`} />
             <span className={`text-sm font-medium ${textColor}`}>
-              +213 555 123 456
+              {phone}
             </span>
           </a>
           <Button
@@ -119,11 +121,10 @@ export const PublicHeader = () => {
                   key={link.name}
                   to={link.href}
                   onClick={() => setIsMobileMenuOpen(false)}
-                  className={`font-medium py-2 transition-colors ${
-                    location.pathname === link.href
+                  className={`font-medium py-2 transition-colors ${location.pathname === link.href
                       ? "text-primary"
                       : "text-foreground hover:text-primary"
-                  }`}
+                    }`}
                 >
                   {link.name}
                 </Link>

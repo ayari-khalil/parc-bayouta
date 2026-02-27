@@ -3,8 +3,22 @@ import { ArrowDown, Calendar, PartyPopper, Coffee } from "lucide-react";
 import { Button } from "./ui/button";
 import heroBg from "@/assets/hero-bg.jpg";
 import logoHero from "@/assets/logo-hero.png";
+import { useState, useEffect } from "react";
+import { getSettings, HomeContent } from "@/api/settingsApi";
 
 export const HeroSection = () => {
+  const [content, setContent] = useState<HomeContent>({
+    heroTitle: "Parc Bayouta",
+    heroSubtitle: "Sport, détente et événements",
+    heroDescription: "Un espace familial unique alliant terrains de mini-foot, salle des fêtes et café-restaurant pour tous vos moments de convivialité."
+  });
+
+  useEffect(() => {
+    getSettings().then(data => {
+      if (data.homeContent) setContent(data.homeContent);
+    }).catch(err => console.error("Failed to fetch hero content", err));
+  }, []);
+
   const scrollToSection = (id: string) => {
     const element = document.querySelector(id);
     if (element) {
@@ -38,13 +52,13 @@ export const HeroSection = () => {
             src={logoHero}
             alt="Parc Bayouta"
             initial={{ opacity: 0, y: -30, scale: 0.8 }}
-            animate={{ 
-              opacity: 1, 
-              y: 0, 
+            animate={{
+              opacity: 1,
+              y: 0,
               scale: 1,
             }}
-            transition={{ 
-              duration: 0.8, 
+            transition={{
+              duration: 0.8,
               delay: 0.3,
               ease: "easeOut"
             }}
@@ -61,16 +75,15 @@ export const HeroSection = () => {
           </motion.span>
 
           <h1 className="font-display text-5xl md:text-6xl lg:text-7xl font-bold text-primary-foreground mb-6 leading-tight">
-            Parc Bayouta
+            {content.heroTitle}
           </h1>
 
           <p className="text-xl md:text-2xl text-primary-foreground/90 font-light mb-4">
-            Sport, détente et événements
+            {content.heroSubtitle}
           </p>
 
           <p className="text-lg text-primary-foreground/80 max-w-2xl mx-auto mb-10">
-            Un espace familial unique alliant terrains de mini-foot, salle des fêtes
-            et café-restaurant pour tous vos moments de convivialité.
+            {content.heroDescription}
           </p>
 
           {/* CTA Buttons */}

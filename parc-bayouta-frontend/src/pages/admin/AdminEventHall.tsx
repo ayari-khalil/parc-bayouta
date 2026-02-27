@@ -38,8 +38,11 @@ import {
 import { reservationApi, HallReservation, Hall } from "@/lib/api/reservation";
 import { format, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isSameDay, addMonths, getDay } from "date-fns";
 import { fr } from "date-fns/locale";
+import { auditApi } from "@/api/auditApi";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function AdminEventHall() {
+  const { user } = useAuth();
   const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -137,7 +140,16 @@ export default function AdminEventHall() {
 
   const handleStatusChange = async (reservationId: string, newStatus: 'confirmed' | 'canceled') => {
     try {
+      const res = realHallReservations.find(r => (r.id || (r as any)._id) === reservationId);
       await reservationApi.updateHallReservationStatus(reservationId, newStatus);
+
+      await auditApi.recordLog({
+        admin: user?.username || "Admin",
+        action: newStatus === 'confirmed' ? "CONFIRMATION" : "ANNULATION",
+        category: "Réservations Salle",
+        details: `${newStatus === 'confirmed' ? "Confirmation" : "Annulation"} de la réservation salle pour ${res?.customerName}`
+      });
+
       fetchHallReservations();
       toast({
         title: newStatus === 'confirmed' ? "Réservation confirmée" : "Réservation annulée",
@@ -157,7 +169,16 @@ export default function AdminEventHall() {
     if (!window.confirm("Êtes-vous sûr de vouloir supprimer cette réservation définitivement ? Cette action libérera la date.")) return;
 
     try {
+      const res = realHallReservations.find(r => (r.id || (r as any)._id) === reservationId);
       await reservationApi.deleteHallReservation(reservationId);
+
+      await auditApi.recordLog({
+        admin: user?.username || "Admin",
+        action: "SUPPRESSION",
+        category: "Réservations Salle",
+        details: `Suppression de la réservation salle pour ${res?.customerName}`
+      });
+
       fetchHallReservations();
       toast({
         title: "Réservation supprimée",
@@ -186,6 +207,13 @@ export default function AdminEventHall() {
         guestCount: 0,
         message: blockReason,
         status: 'blocked'
+      });
+
+      await auditApi.recordLog({
+        admin: user?.username || "Admin",
+        action: "BLOCAGE",
+        category: "Réservations Salle",
+        details: `Blocage de la date ${format(new Date(blockDate), 'dd MMMM yyyy', { locale: fr })} (Raison: ${blockReason || 'Non spécifiée'})`
       });
 
       fetchHallReservations();
@@ -442,11 +470,30 @@ export default function AdminEventHall() {
                         {format(new Date(reservation.date), 'dd MMM yyyy', { locale: fr })}
                       </TableCell>
                       <TableCell>
-                        <Badge variant="outline">
-                          {typeof reservation.hall === 'string'
-                            ? (halls.find(h => h.id === reservation.hall || h._id === reservation.hall)?.name || 'Inconnue')
-                            : reservation.hall?.name || 'Inconnue'}
-                        </Badge>
+                        {(() => {
+                          const hallId = typeof reservation.hall === 'string' ? reservation.hall : (reservation.hall as any)?.id || (reservation.hall as any)?._id;
+                          const hallIndex = halls.findIndex(h => (h.id === hallId || h._id === hallId));
+                          const hallNumber = hallIndex !== -1 ? hallIndex + 1 : 1;
+                          const HallIcon = hallIndex === 1 ? Castle : Building2;
+
+                          return (
+                            <Badge
+                              variant="outline"
+                              className={`gap-1.5 ${hallIndex === 1
+                                ? 'border-indigo-200 bg-indigo-50 text-indigo-700'
+                                : 'border-cyan-200 bg-cyan-50 text-cyan-700'
+                                }`}
+                            >
+                              <HallIcon className="w-3.5 h-3.5" />
+                              <span className="font-bold">{hallNumber}</span>
+                              <span>
+                                {typeof reservation.hall === 'string'
+                                  ? (halls.find(h => h.id === reservation.hall || h._id === reservation.hall)?.name || 'Salle')
+                                  : reservation.hall?.name || 'Salle'}
+                              </span>
+                            </Badge>
+                          );
+                        })()}
                       </TableCell>
                       <TableCell>
                         <div>

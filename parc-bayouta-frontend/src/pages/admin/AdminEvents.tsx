@@ -35,6 +35,8 @@ import { useToast } from "@/hooks/use-toast";
 import { eventApi, Event, EventReservation } from "@/api/dashboardApi";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
+import { auditApi } from "@/api/auditApi";
+import { useAuth } from "@/contexts/AuthContext";
 
 const categories = [
   { value: 'movie', label: 'Cinéma' },
@@ -61,6 +63,7 @@ export const getCategoryColor = (category: string) => {
 };
 
 export default function AdminEvents() {
+  const { user } = useAuth();
   const { toast } = useToast();
   const [events, setEvents] = useState<Event[]>([]);
   const [reservations, setReservations] = useState<EventReservation[]>([]);
@@ -206,6 +209,13 @@ export default function AdminEvents() {
         await eventApi.createEvent(payload);
       }
 
+      await auditApi.recordLog({
+        admin: user?.username || "Admin",
+        action: editingEvent ? "MODIFICATION" : "CRÉATION",
+        category: "Événements",
+        details: `${editingEvent ? "Modification" : "Création"} de l'événement "${eventForm.title}"`
+      });
+
       toast({
         title: editingEvent ? "Événement modifié" : "Événement créé",
         description: `L'événement "${eventForm.title}" a été enregistré avec succès.`,
@@ -224,6 +234,12 @@ export default function AdminEvents() {
   const handleToggleFeatured = async (event: Event) => {
     try {
       await eventApi.updateEvent(event._id || event.id, { isFeatured: !event.isFeatured });
+      await auditApi.recordLog({
+        admin: user?.username || "Admin",
+        action: "MODIFICATION",
+        category: "Événements",
+        details: `${!event.isFeatured ? "Mise en avant" : "Retrait de la mise en avant"} de l'événement "${event.title}"`
+      });
       fetchData();
       toast({
         title: !event.isFeatured ? "Ajouté aux featured" : "Retiré des featured",
@@ -237,6 +253,12 @@ export default function AdminEvents() {
   const handleToggleActive = async (event: Event) => {
     try {
       await eventApi.updateEvent(event._id || event.id, { isActive: !event.isActive });
+      await auditApi.recordLog({
+        admin: user?.username || "Admin",
+        action: "MODIFICATION",
+        category: "Événements",
+        details: `${!event.isActive ? "Activation" : "Désactivation"} de l'événement "${event.title}"`
+      });
       fetchData();
       toast({
         title: !event.isActive ? "Activé" : "Désactivé",
@@ -250,7 +272,14 @@ export default function AdminEvents() {
   const handleDeleteEvent = async () => {
     if (!deleteEventId) return;
     try {
+      const event = events.find(e => (e._id || e.id) === deleteEventId);
       await eventApi.deleteEvent(deleteEventId);
+      await auditApi.recordLog({
+        admin: user?.username || "Admin",
+        action: "SUPPRESSION",
+        category: "Événements",
+        details: `Suppression de l'événement "${event?.title}"`
+      });
       toast({
         title: "Événement supprimé",
         description: "L'événement a été supprimé avec succès.",

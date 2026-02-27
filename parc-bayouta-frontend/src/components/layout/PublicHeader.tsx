@@ -63,6 +63,7 @@ export const PublicHeader = () => {
 
         {/* Desktop Navigation */}
         <nav className="hidden lg:flex items-center gap-6">
+<<<<<<< HEAD
           {navLinks.map((link) => (
             <Link
               key={link.name}
@@ -75,6 +76,27 @@ export const PublicHeader = () => {
               {link.name}
             </Link>
           ))}
+=======
+          {navLinks.map((link) => {
+            const isActive = location.pathname === link.href ||
+              (link.href !== "/" && location.pathname.startsWith(link.href));
+
+            return (
+              <Link
+                key={link.name}
+                to={link.href}
+                className={`text-sm font-medium transition-all duration-300 relative py-1 group ${isActive ? "text-primary" : textColor
+                  }`}
+              >
+                {link.name}
+                <span
+                  className={`absolute bottom-0 left-0 w-full h-0.5 bg-primary transition-transform duration-300 origin-left ${isActive ? "scale-x-100" : "scale-x-0 group-hover:scale-x-100"
+                    }`}
+                />
+              </Link>
+            );
+          })}
+>>>>>>> 2441a2b46f75f4c431763d2868b34eac10db9dc8
         </nav>
 
         {/* CTA Buttons */}
@@ -115,6 +137,7 @@ export const PublicHeader = () => {
             exit={{ opacity: 0, height: 0 }}
             className="lg:hidden bg-background/95 backdrop-blur-md border-t border-border"
           >
+<<<<<<< HEAD
             <nav className="container mx-auto px-4 py-6 flex flex-col gap-4">
               {navLinks.map((link) => (
                 <Link
@@ -130,6 +153,28 @@ export const PublicHeader = () => {
                 </Link>
               ))}
               <Button className="mt-4" asChild>
+=======
+            <nav className="container mx-auto px-4 py-6 flex flex-col gap-2">
+              {navLinks.map((link) => {
+                const isActive = location.pathname === link.href ||
+                  (link.href !== "/" && location.pathname.startsWith(link.href));
+
+                return (
+                  <Link
+                    key={link.name}
+                    to={link.href}
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className={`font-medium py-3 px-4 rounded-lg transition-all duration-200 ${isActive
+                        ? "bg-primary/10 text-primary"
+                        : "text-foreground hover:bg-muted hover:text-primary"
+                      }`}
+                  >
+                    {link.name}
+                  </Link>
+                );
+              })}
+              <Button className="mt-4 w-full" size="lg" asChild>
+>>>>>>> 2441a2b46f75f4c431763d2868b34eac10db9dc8
                 <Link to="/fields" onClick={() => setIsMobileMenuOpen(false)}>
                   Réserver maintenant
                 </Link>

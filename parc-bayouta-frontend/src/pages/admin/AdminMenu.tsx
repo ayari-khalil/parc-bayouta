@@ -131,6 +131,14 @@ export default function AdminMenu() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['categories'] });
       toast({ title: "Catégorie modifiée", description: "La catégorie a été modifiée avec succès." });
+
+      auditApi.recordLog({
+        admin: user?.username || "Admin",
+        action: "MODIFICATION",
+        category: "Menu (Catégories)",
+        details: `Modification de la catégorie: ${categoryForm.name}`
+      });
+
       setShowCategoryDialog(false);
       setEditingCategory(null);
     },
@@ -141,10 +149,19 @@ export default function AdminMenu() {
 
   const deleteCategoryMutation = useMutation({
     mutationFn: menuApi.deleteCategory,
-    onSuccess: () => {
+    onSuccess: (_, categoryId) => {
       queryClient.invalidateQueries({ queryKey: ['categories'] });
       queryClient.invalidateQueries({ queryKey: ['menuItems'] });
       toast({ title: "Catégorie supprimée", description: "La catégorie a été supprimée avec succès." });
+
+      const category = categories.find(c => c.id === categoryId);
+      auditApi.recordLog({
+        admin: user?.username || "Admin",
+        action: "SUPPRESSION",
+        category: "Menu (Catégories)",
+        details: `Suppression de la catégorie: ${category?.name}`
+      });
+
       setDeleteDialog(null);
     },
     onError: () => {
@@ -180,7 +197,15 @@ export default function AdminMenu() {
       menuApi.updateMenuItem(id, data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['menuItems'] });
-      toast({ title: "Article modifié", description: "L'article a été modifié avec succès." });
+      toast({ title: "Article modifié", description: "La article a été modifié avec succès." });
+
+      auditApi.recordLog({
+        admin: user?.username || "Admin",
+        action: "MODIFICATION",
+        category: "Menu (Articles)",
+        details: `Modification de l'article: ${itemForm.name}`
+      });
+
       setShowItemDialog(false);
       setEditingItem(null);
     },
@@ -191,9 +216,17 @@ export default function AdminMenu() {
 
   const toggleItemMutation = useMutation({
     mutationFn: menuApi.toggleMenuItem,
-    onSuccess: () => {
+    onSuccess: (_, itemId) => {
       queryClient.invalidateQueries({ queryKey: ['menuItems'] });
       toast({ title: "Statut modifié", description: "Le statut de l'article a été modifié." });
+
+      const item = menuItems.find(i => i.id === itemId);
+      auditApi.recordLog({
+        admin: user?.username || "Admin",
+        action: "MODIFICATION",
+        category: "Menu (Articles)",
+        details: `${item?.isActive ? "Désactivation" : "Activation"} de l'article: ${item?.name}`
+      });
     },
     onError: () => {
       toast({ title: "Erreur", description: "Impossible de modifier le statut.", variant: "destructive" });
@@ -202,9 +235,18 @@ export default function AdminMenu() {
 
   const deleteItemMutation = useMutation({
     mutationFn: menuApi.deleteMenuItem,
-    onSuccess: () => {
+    onSuccess: (_, itemId) => {
       queryClient.invalidateQueries({ queryKey: ['menuItems'] });
       toast({ title: "Article supprimé", description: "L'article a été supprimé avec succès." });
+
+      const item = menuItems.find(i => i.id === itemId);
+      auditApi.recordLog({
+        admin: user?.username || "Admin",
+        action: "SUPPRESSION",
+        category: "Menu (Articles)",
+        details: `Suppression de l'article: ${item?.name}`
+      });
+
       setDeleteDialog(null);
     },
     onError: () => {
@@ -717,128 +759,136 @@ export default function AdminMenu() {
 
         {/* Item Dialog */}
         <Dialog open={showItemDialog} onOpenChange={setShowItemDialog}>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>
-                {editingItem ? 'Modifier l\'article' : 'Nouvel article'}
-              </DialogTitle>
-              <DialogDescription>
-                {categories.length === 0
-                  ? '⚠️ Créez d\'abord une catégorie avant d\'ajouter des articles'
-                  : editingItem ? 'Modifiez les informations de l\'article' : 'Ajoutez un nouvel article au menu'
-                }
-              </DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label>Nom de l'article *</Label>
-                <Input
-                  value={itemForm.name}
-                  onChange={(e) => setItemForm({ ...itemForm, name: e.target.value })}
-                  placeholder="Ex: Café Express"
-                  autoFocus
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Catégorie *</Label>
-                <Select
-                  value={itemForm.category}
-                  onValueChange={(v) => setItemForm({ ...itemForm, category: v })}
-                  disabled={categories.length === 0}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder={categories.length === 0 ? "Aucune catégorie disponible" : "Sélectionner une catégorie"} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {categories.map(cat => (
-                      <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label>Prix (DT) *</Label>
-                <Input
-                  type="number"
-                  step="0.01"
-                  min="0"
-                  value={itemForm.price}
-                  onChange={(e) => setItemForm({ ...itemForm, price: e.target.value })}
-                  placeholder="100"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Description (optionnel)</Label>
-                <Textarea
-                  value={itemForm.description}
-                  onChange={(e) => setItemForm({ ...itemForm, description: e.target.value })}
-                  placeholder="Description de l'article..."
-                  rows={3}
-                />
-              </div>
-              <div className="flex items-center gap-2">
-                <Switch
-                  checked={itemForm.isActive}
-                  onCheckedChange={(checked) => setItemForm({ ...itemForm, isActive: checked })}
-                />
-                <Label>Article actif (visible pour les clients)</Label>
-              </div>
+          <DialogContent className="sm:max-w-[500px] max-h-[90vh] flex flex-col p-0 overflow-hidden">
+            <div className="p-6 pb-2">
+              <DialogHeader>
+                <DialogTitle>
+                  {editingItem ? 'Modifier l\'article' : 'Nouvel article'}
+                </DialogTitle>
+                <DialogDescription>
+                  {categories.length === 0
+                    ? '⚠️ Créez d\'abord une catégorie avant d\'ajouter des articles'
+                    : editingItem ? 'Modifiez les informations de l\'article' : 'Ajoutez un nouvel article au menu'
+                  }
+                </DialogDescription>
+              </DialogHeader>
+            </div>
 
-              {/* Image Upload Field */}
-              <div className="space-y-2 pt-2">
-                <Label>Image de l'article</Label>
-                <div className="flex flex-col gap-4">
-                  {imagePreview ? (
-                    <div className="relative w-full aspect-video rounded-xl overflow-hidden border bg-muted group">
-                      <img
-                        src={imagePreview}
-                        alt="Preview"
-                        className="w-full h-full object-cover"
-                      />
-                      <button
-                        onClick={removeImage}
-                        className="absolute top-2 right-2 p-1.5 bg-black/50 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
-                        type="button"
-                      >
-                        <X className="w-4 h-4" />
-                      </button>
-                    </div>
-                  ) : (
-                    <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-muted rounded-xl cursor-pointer hover:bg-muted/50 transition-colors">
-                      <div className="flex flex-col items-center justify-center pt-5 pb-6">
-                        <Upload className="w-8 h-8 text-muted-foreground mb-2" />
-                        <p className="text-sm text-muted-foreground">Cliquez pour ajouter une image</p>
-                        <p className="text-xs text-muted-foreground/60 mt-1">PNG, JPG ou JPEG (max. 5Mo)</p>
+            <div className="flex-1 overflow-y-auto px-6 py-2">
+              <div className="space-y-4 pb-4">
+                <div className="space-y-2">
+                  <Label>Nom de l'article *</Label>
+                  <Input
+                    value={itemForm.name}
+                    onChange={(e) => setItemForm({ ...itemForm, name: e.target.value })}
+                    placeholder="Ex: Café Express"
+                    autoFocus
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Catégorie *</Label>
+                  <Select
+                    value={itemForm.category}
+                    onValueChange={(v) => setItemForm({ ...itemForm, category: v })}
+                    disabled={categories.length === 0}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder={categories.length === 0 ? "Aucune catégorie disponible" : "Sélectionner une catégorie"} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {categories.map(cat => (
+                        <SelectItem key={cat.id} value={cat.id}>{cat.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label>Prix (DT) *</Label>
+                  <Input
+                    type="number"
+                    step="0.01"
+                    min="0"
+                    value={itemForm.price}
+                    onChange={(e) => setItemForm({ ...itemForm, price: e.target.value })}
+                    placeholder="100"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Description (optionnel)</Label>
+                  <Textarea
+                    value={itemForm.description}
+                    onChange={(e) => setItemForm({ ...itemForm, description: e.target.value })}
+                    placeholder="Description de l'article..."
+                    rows={3}
+                  />
+                </div>
+                <div className="flex items-center gap-2">
+                  <Switch
+                    checked={itemForm.isActive}
+                    onCheckedChange={(checked) => setItemForm({ ...itemForm, isActive: checked })}
+                  />
+                  <Label>Article actif (visible pour les clients)</Label>
+                </div>
+
+                {/* Image Upload Field */}
+                <div className="space-y-2 pt-2">
+                  <Label>Image de l'article</Label>
+                  <div className="flex flex-col gap-4">
+                    {imagePreview ? (
+                      <div className="relative w-full aspect-video rounded-xl overflow-hidden border bg-muted group">
+                        <img
+                          src={imagePreview}
+                          alt="Preview"
+                          className="w-full h-full object-cover"
+                        />
+                        <button
+                          onClick={removeImage}
+                          className="absolute top-2 right-2 p-1.5 bg-black/50 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                          type="button"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
                       </div>
-                      <input
-                        type="file"
-                        className="hidden"
-                        accept="image/*"
-                        onChange={handleFileChange}
-                      />
-                    </label>
-                  )}
+                    ) : (
+                      <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-muted rounded-xl cursor-pointer hover:bg-muted/50 transition-colors">
+                        <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                          <Upload className="w-8 h-8 text-muted-foreground mb-2" />
+                          <p className="text-sm text-muted-foreground text-center px-4">Cliquez pour ajouter une image</p>
+                          <p className="text-xs text-muted-foreground/60 mt-1">PNG, JPG ou JPEG (max. 5Mo)</p>
+                        </div>
+                        <input
+                          type="file"
+                          className="hidden"
+                          accept="image/*"
+                          onChange={handleFileChange}
+                        />
+                      </label>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setShowItemDialog(false)} disabled={isUploading}>
-                Annuler
-              </Button>
-              <Button
-                onClick={handleSaveItem}
-                disabled={!itemForm.name.trim() || !itemForm.category || !itemForm.price || categories.length === 0 || isUploading}
-              >
-                {isUploading ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Enregistrement...
-                  </>
-                ) : (
-                  editingItem ? 'Modifier' : 'Créer'
-                )}
-              </Button>
-            </DialogFooter>
+
+            <div className="p-6 pt-2 border-t mt-auto">
+              <DialogFooter className="gap-2 sm:gap-0">
+                <Button variant="outline" onClick={() => setShowItemDialog(false)} disabled={isUploading}>
+                  Annuler
+                </Button>
+                <Button
+                  onClick={handleSaveItem}
+                  disabled={!itemForm.name.trim() || !itemForm.category || !itemForm.price || categories.length === 0 || isUploading}
+                >
+                  {isUploading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Enregistrement...
+                    </>
+                  ) : (
+                    editingItem ? 'Modifier' : 'Créer'
+                  )}
+                </Button>
+              </DialogFooter>
+            </div>
           </DialogContent>
         </Dialog>
 

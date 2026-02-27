@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Search, Calendar, Users, Clock, Check, X, Eye, Download, Filter, Trash2, Repeat, Volume2, VolumeX, Loader2 } from "lucide-react";
+import { Search, Calendar, Users, Clock, Check, X, Eye, Download, Filter, Trash2, Repeat, Volume2, VolumeX, Loader2, Building2, Castle } from "lucide-react";
 import { AdminLayout } from "@/components/layout/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -290,7 +290,16 @@ export default function AdminReservations() {
   const handleDeleteHallReservation = async (id: string) => {
     if (!window.confirm("Êtes-vous sûr de vouloir supprimer cette réservation ?")) return;
     try {
+      const res = realHallReservations.find(r => r.id === id);
       await reservationApi.deleteHallReservation(id);
+
+      await auditApi.recordLog({
+        admin: user?.username || "Admin",
+        action: "SUPPRESSION",
+        category: "Réservations Salle",
+        details: `Suppression de la réservation salle pour ${res?.customerName}`
+      });
+
       fetchHallReservations();
       toast({ title: "Réservation supprimée", className: "bg-green-600 text-white border-none" });
       setSelectedHallRes(null);
@@ -302,7 +311,16 @@ export default function AdminReservations() {
   const handleDeleteEventReservation = async (id: string) => {
     if (!window.confirm("Supprimer cette réservation ?")) return;
     try {
+      const res = realEventReservations.find(r => (r._id || r.id) === id);
       await eventApi.deleteReservation(id);
+
+      await auditApi.recordLog({
+        admin: user?.username || "Admin",
+        action: "SUPPRESSION",
+        category: "Réservations Événements",
+        details: `Suppression de la réservation événement pour ${res?.customerName}`
+      });
+
       fetchEventReservations();
       toast({ title: "Supprimé" });
       setSelectedEventRes(null);
@@ -580,11 +598,30 @@ export default function AdminReservations() {
                             {format(new Date(res.date), 'dd MMM yyyy', { locale: fr })}
                           </TableCell>
                           <TableCell>
-                            <Badge variant="outline">
-                              {typeof res.hall === 'string'
-                                ? (halls.find(h => h.id === res.hall || h._id === res.hall)?.name || 'Inconnue')
-                                : res.hall?.name || 'Inconnue'}
-                            </Badge>
+                            {(() => {
+                              const hallId = typeof res.hall === 'string' ? res.hall : (res.hall as any)?.id || (res.hall as any)?._id;
+                              const hallIndex = halls.findIndex(h => (h.id === hallId || h._id === hallId));
+                              const hallNumber = hallIndex !== -1 ? hallIndex + 1 : 1;
+                              const HallIcon = hallIndex === 1 ? Castle : Building2;
+
+                              return (
+                                <Badge
+                                  variant="outline"
+                                  className={`gap-1.5 ${hallIndex === 1
+                                    ? 'border-indigo-200 bg-indigo-50 text-indigo-700'
+                                    : 'border-cyan-200 bg-cyan-50 text-cyan-700'
+                                    }`}
+                                >
+                                  <HallIcon className="w-3.5 h-3.5" />
+                                  <span className="font-bold">{hallNumber}</span>
+                                  <span>
+                                    {typeof res.hall === 'string'
+                                      ? (halls.find(h => h.id === res.hall || h._id === res.hall)?.name || 'Salle')
+                                      : res.hall?.name || 'Salle'}
+                                  </span>
+                                </Badge>
+                              );
+                            })()}
                           </TableCell>
                           <TableCell>
                             <div>

@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
-import { Calendar, Users, PartyPopper, CalendarDays, TrendingUp, Clock, History, User, Volume2, VolumeX } from "lucide-react";
+import { Calendar, Users, PartyPopper, CalendarDays, TrendingUp, Clock, History, User, Volume2, VolumeX, Building2, Castle } from "lucide-react";
 import { AdminLayout } from "@/components/layout/AdminLayout";
 import { Button } from "@/components/ui/button";
-import { reservationApi, HallReservation, FieldReservation } from "@/lib/api/reservation";
+import { reservationApi, HallReservation, FieldReservation, Hall } from "@/lib/api/reservation";
 import { getTodayVisits } from "@/api/analyticsApi";
 import { eventApi, messageApi, Event, ContactMessage } from "@/api/dashboardApi";
 import { auditApi, AuditLog } from "@/api/auditApi";
@@ -15,6 +15,7 @@ import { useRef } from "react";
 
 export default function AdminDashboard() {
   const [realHallReservations, setRealHallReservations] = useState<HallReservation[]>([]);
+  const [halls, setHalls] = useState<Hall[]>([]);
   const [fieldReservations, setFieldReservations] = useState<FieldReservation[]>([]);
   const [events, setEvents] = useState<Event[]>([]);
   const [messages, setMessages] = useState<ContactMessage[]>([]);
@@ -68,13 +69,14 @@ export default function AdminDashboard() {
 
   const fetchAllData = async () => {
     try {
-      const [hallRes, fieldRes, evs, msgs, visits, logs] = await Promise.all([
+      const [hallRes, fieldRes, evs, msgs, visits, logs, hallsData] = await Promise.all([
         reservationApi.getAllHallReservations(),
         reservationApi.getAllFieldReservations(),
         eventApi.getEvents(),
         messageApi.getMessages(),
         getTodayVisits(),
-        auditApi.getLogs()
+        auditApi.getLogs(),
+        reservationApi.getHalls()
       ]);
 
       // Check for new reservations to play sound
@@ -120,6 +122,7 @@ export default function AdminDashboard() {
       setMessages(msgs);
       setTodayVisits(visits.count);
       setAuditLogs(logs);
+      setHalls(hallsData);
 
       lastHallCount.current = hallRes.length;
       lastFieldCount.current = fieldRes.length;
@@ -232,7 +235,28 @@ export default function AdminDashboard() {
                       .map((res) => (
                         <div key={res.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-3 bg-muted/30 rounded-lg gap-2">
                           <div className="min-w-0">
-                            <p className="font-semibold text-foreground truncate">{res.customerName}</p>
+                            <div className="flex items-center gap-2 mb-1">
+                              {(() => {
+                                const hallId = typeof res.hall === 'string' ? res.hall : (res.hall as any)?.id || (res.hall as any)?._id;
+                                const hallIndex = halls.findIndex(h => (h.id === hallId || h._id === hallId));
+                                const hallNumber = hallIndex !== -1 ? hallIndex + 1 : 1;
+                                const HallIcon = hallIndex === 1 ? Castle : Building2;
+
+                                return (
+                                  <Badge
+                                    variant="outline"
+                                    className={`h-5 text-[10px] gap-1 px-1.5 ${hallIndex === 1
+                                      ? 'border-indigo-200 bg-indigo-50 text-indigo-700'
+                                      : 'border-cyan-200 bg-cyan-50 text-cyan-700'
+                                      }`}
+                                  >
+                                    <HallIcon className="w-3 h-3" />
+                                    <span className="font-bold">{hallNumber}</span>
+                                  </Badge>
+                                );
+                              })()}
+                              <p className="font-semibold text-foreground truncate">{res.customerName}</p>
+                            </div>
                             <p className="text-xs sm:text-sm text-muted-foreground">
                               {res.eventType} • {format(new Date(res.date), "dd MMM yyyy", { locale: fr })}
                             </p>

@@ -36,9 +36,15 @@ import {
 } from "@/data/mockData";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
+<<<<<<< HEAD
 import { getMessages, updateMessageStatus, deleteMessage, ContactMessage } from "@/api/contactApi";
+=======
+import { auditApi } from "@/api/auditApi";
+import { useAuth } from "@/contexts/AuthContext";
+>>>>>>> 2441a2b46f75f4c431763d2868b34eac10db9dc8
 
 export default function AdminMessages() {
+  const { user } = useAuth();
   const { toast } = useToast();
   const [messages, setMessages] = useState<ContactMessage[]>([]);
   const [loading, setLoading] = useState(true);
@@ -79,6 +85,7 @@ export default function AdminMessages() {
   });
 
   const handleStatusChange = async (messageId: string, newStatus: 'processed' | 'archived') => {
+<<<<<<< HEAD
     try {
       await updateMessageStatus(messageId, newStatus);
       toast({
@@ -113,6 +120,40 @@ export default function AdminMessages() {
         variant: "destructive",
       });
     }
+=======
+    const msg = contactMessages.find(m => m.id === messageId);
+
+    await auditApi.recordLog({
+      admin: user?.username || "Admin",
+      action: "MODIFICATION",
+      category: "Messages & Demandes",
+      details: `Message de ${msg?.name} marqué comme ${newStatus === 'processed' ? 'traité' : 'archivé'}`
+    });
+
+    toast({
+      title: newStatus === 'processed' ? "Message traité" : "Message archivé",
+      description: `Le message a été marqué comme ${newStatus === 'processed' ? 'traité' : 'archivé'}.`,
+    });
+    setSelectedMessage(null);
+  };
+
+  const handleDeleteMessage = async () => {
+    if (deleteMessageId) {
+      const msg = contactMessages.find(m => m.id === deleteMessageId);
+      await auditApi.recordLog({
+        admin: user?.username || "Admin",
+        action: "SUPPRESSION",
+        category: "Messages & Demandes",
+        details: `Suppression du message de ${msg?.name} (Sujet: ${msg?.subject})`
+      });
+    }
+
+    toast({
+      title: "Message supprimé",
+      description: "Le message a été supprimé avec succès.",
+    });
+    setDeleteMessageId(null);
+>>>>>>> 2441a2b46f75f4c431763d2868b34eac10db9dc8
   };
 
   const handleExportCSV = () => {

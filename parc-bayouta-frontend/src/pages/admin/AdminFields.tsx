@@ -34,6 +34,8 @@ import { format, addDays, startOfWeek } from "date-fns";
 import { fr } from "date-fns/locale";
 import { reservationApi, FieldReservation } from "@/lib/api/reservation";
 import { useEffect } from "react";
+import { auditApi } from "@/api/auditApi";
+import { useAuth } from "@/contexts/AuthContext";
 
 const initialFields = [
   { id: 1, name: "Terrain 1", status: 'active', dbId: "" },
@@ -69,6 +71,7 @@ const getStatusLabel = (status: string) => {
 };
 
 export default function AdminFields() {
+  const { user } = useAuth();
   const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -151,7 +154,16 @@ export default function AdminFields() {
 
   const handleStatusChange = async (reservationId: string, newStatus: 'confirmed' | 'canceled') => {
     try {
+      const res = allReservations.find(r => (r.id || (r as any)._id) === reservationId);
       await reservationApi.updateFieldReservationStatus(reservationId, newStatus);
+
+      await auditApi.recordLog({
+        admin: user?.username || "Admin",
+        action: newStatus === 'confirmed' ? "CONFIRMATION" : "ANNULATION",
+        category: "Réservations Terrains",
+        details: `${newStatus === 'confirmed' ? "Confirmation" : "Annulation"} de la réservation terrain pour ${res?.customerName}`
+      });
+
       toast({
         title: newStatus === 'confirmed' ? "Réservation confirmée" : "Réservation annulée",
         description: `La réservation a été ${newStatus === 'confirmed' ? 'confirmée' : 'annulée'} avec succès.`,
@@ -167,13 +179,25 @@ export default function AdminFields() {
     }
   };
 
-  const handleBlockSlot = () => {
-    toast({
-      title: "Créneau bloqué",
-      description: "Le créneau a été bloqué avec succès.",
-    });
-    setShowBlockDialog(false);
-    setBlockData({ fieldId: "1", date: "", timeSlot: "", reason: "" });
+  const handleBlockSlot = async () => {
+    try {
+      // Assuming block info should be logged even if it's currently a mock toast
+      await auditApi.recordLog({
+        admin: user?.username || "Admin",
+        action: "BLOCAGE",
+        category: "Réservations Terrains",
+        details: `Blocage du créneau ${blockData.timeSlot} le ${blockData.date} pour le Terrain ${blockData.fieldId} (Raison: ${blockData.reason || 'Non spécifiée'})`
+      });
+
+      toast({
+        title: "Créneau bloqué",
+        description: "Le créneau a été bloqué avec succès.",
+      });
+      setShowBlockDialog(false);
+      setBlockData({ fieldId: "1", date: "", timeSlot: "", reason: "" });
+    } catch (error) {
+      toast({ title: "Erreur", variant: "destructive" });
+    }
   };
 
   const handleCreateReservation = async () => {
@@ -198,6 +222,13 @@ export default function AdminFields() {
         customerName: addData.customerName,
         customerPhone: addData.customerPhone,
         isRecurring: addData.isRecurring,
+      });
+
+      await auditApi.recordLog({
+        admin: user?.username || "Admin",
+        action: "CRÉATION",
+        category: "Réservations Terrains",
+        details: `Création manuelle d'une réservation pour ${addData.customerName} (Terrain: ${selectedFieldObj?.name}, Date: ${addData.date}, Créneau: ${addData.timeSlot})`
       });
 
       toast({

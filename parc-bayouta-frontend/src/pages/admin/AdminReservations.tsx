@@ -54,7 +54,7 @@ export default function AdminReservations() {
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState<ReservationType>("field");
   const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [statusFilter, setStatusFilter] = useState<string>("pending");
   const [dateFilter, setDateFilter] = useState<string>("");
   const [fields, setFields] = useState(initialFields);
   const [isAudioEnabled, setIsAudioEnabled] = useState(false);

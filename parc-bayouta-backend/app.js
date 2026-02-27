@@ -1,5 +1,6 @@
 const express = require('express');
 const helmet = require('helmet');
+const path = require('path');
 const cors = require('cors');
 const morgan = require('morgan');
 const routes = require('./routes');
@@ -7,7 +8,9 @@ const routes = require('./routes');
 const app = express();
 
 // Security HTTP headers
-app.use(helmet());
+app.use(helmet({
+    crossOriginResourcePolicy: false,
+}));
 
 // Parse json request body
 app.use(express.json());
@@ -23,6 +26,10 @@ app.use(morgan('dev'));
 
 // Api routes
 app.use('/api', routes);
+
+// Serve static files from uploads directory
+const uploadsPath = path.join(__dirname, 'uploads');
+app.use('/uploads', cors(), express.static(uploadsPath));
 
 // Send 404 error for unknown api requested
 app.use((req, res, next) => {

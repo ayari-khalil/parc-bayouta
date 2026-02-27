@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { Plus, Edit, Trash2, GripVertical, Search, Coffee, UtensilsCrossed, IceCream, Cake, Wine, Loader2 } from "lucide-react";
+import { Plus, Edit, Trash2, GripVertical, Search, Coffee, UtensilsCrossed, IceCream, Cake, Wine, Loader2, Upload, X, ImageIcon } from "lucide-react";
 import { AdminLayout } from "@/components/layout/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -63,8 +63,14 @@ export default function AdminMenu() {
     price: "",
     description: "",
     category: "",
-    isActive: true
+    isActive: true,
+    image: ""
   });
+
+  // Image upload state
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
 
   // Delete confirmation
   const [deleteDialog, setDeleteDialog] = useState<{ type: 'category' | 'item', id: string } | null>(null);
@@ -162,7 +168,7 @@ export default function AdminMenu() {
       });
 
       setShowItemDialog(false);
-      setItemForm({ name: "", price: "", description: "", category: "", isActive: true });
+      setItemForm({ name: "", price: "", description: "", category: "", isActive: true, image: "" });
     },
     onError: () => {
       toast({ title: "Erreur", description: "Impossible de créer l'article.", variant: "destructive" });
@@ -246,25 +252,73 @@ export default function AdminMenu() {
         price: item.price.toString(),
         description: item.description || "",
         category: catId,
-        isActive: item.isActive
+        isActive: item.isActive,
+        image: item.image || ""
       });
     } else {
       setEditingItem(null);
-      setItemForm({ name: "", price: "", description: "", category: "", isActive: true });
+      setItemForm({ name: "", price: "", description: "", category: "", isActive: true, image: "" });
     }
+
+    // Set preview if editing existing item
+    const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+    setImagePreview(item?.image ? `${apiUrl}${item.image.startsWith('/') ? '' : '/'}${item.image}` : null);
+    setSelectedFile(null);
     setShowItemDialog(true);
   };
 
-  const handleSaveItem = () => {
-    const itemData = {
-      ...itemForm,
-      price: parseFloat(itemForm.price)
-    };
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        toast({ title: "Fichier trop volumineux", description: "La taille maximale est de 5Mo", variant: "destructive" });
+        return;
+      }
+      setSelectedFile(file);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
 
-    if (editingItem) {
-      updateItemMutation.mutate({ id: editingItem.id, data: itemData });
-    } else {
-      createItemMutation.mutate(itemData);
+  const removeImage = () => {
+    setSelectedFile(null);
+    setImagePreview(null);
+    setItemForm({ ...itemForm, image: "" });
+  };
+
+  const handleSaveItem = async () => {
+    try {
+      setIsUploading(true);
+      let imageUrl = editingItem?.image || "";
+
+      // Upload image if a new file is selected
+      if (selectedFile) {
+        const uploadRes = await menuApi.uploadImage(selectedFile);
+        imageUrl = uploadRes.url;
+      }
+
+      const itemData = {
+        ...itemForm,
+        price: parseFloat(itemForm.price),
+        image: imageUrl
+      };
+
+      if (editingItem) {
+        updateItemMutation.mutate({ id: editingItem.id, data: itemData });
+      } else {
+        createItemMutation.mutate(itemData);
+      }
+    } catch (error) {
+      toast({
+        title: "Erreur",
+        description: "Impossible d'uploader l'image ou d'enregistrer l'article.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsUploading(false);
     }
   };
 
@@ -403,12 +457,29 @@ export default function AdminMenu() {
                         return (
                           <TableRow key={item.id}>
                             <TableCell>
-                              <div className="font-medium">{item.name}</div>
-                              {item.description && (
-                                <div className="text-sm text-muted-foreground truncate max-w-[200px]">
-                                  {item.description}
+                              <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-lg bg-muted overflow-hidden flex-shrink-0 border border-border">
+                                  {item.image ? (
+                                    <img
+                                      src={`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}${item.image.startsWith('/') ? '' : '/'}${item.image}`}
+                                      alt={item.name}
+                                      className="w-full h-full object-cover"
+                                    />
+                                  ) : (
+                                    <div className="w-full h-full flex items-center justify-center text-muted-foreground/30">
+                                      <ImageIcon className="w-5 h-5" />
+                                    </div>
+                                  )}
                                 </div>
-                              )}
+                                <div>
+                                  <div className="font-medium">{item.name}</div>
+                                  {item.description && (
+                                    <div className="text-sm text-muted-foreground truncate max-w-[200px]">
+                                      {item.description}
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
                             </TableCell>
                             <TableCell>
                               <Badge variant="outline">{category?.name}</Badge>
@@ -712,16 +783,60 @@ export default function AdminMenu() {
                 />
                 <Label>Article actif (visible pour les clients)</Label>
               </div>
+
+              {/* Image Upload Field */}
+              <div className="space-y-2 pt-2">
+                <Label>Image de l'article</Label>
+                <div className="flex flex-col gap-4">
+                  {imagePreview ? (
+                    <div className="relative w-full aspect-video rounded-xl overflow-hidden border bg-muted group">
+                      <img
+                        src={imagePreview}
+                        alt="Preview"
+                        className="w-full h-full object-cover"
+                      />
+                      <button
+                        onClick={removeImage}
+                        className="absolute top-2 right-2 p-1.5 bg-black/50 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                        type="button"
+                      >
+                        <X className="w-4 h-4" />
+                      </button>
+                    </div>
+                  ) : (
+                    <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed border-muted rounded-xl cursor-pointer hover:bg-muted/50 transition-colors">
+                      <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                        <Upload className="w-8 h-8 text-muted-foreground mb-2" />
+                        <p className="text-sm text-muted-foreground">Cliquez pour ajouter une image</p>
+                        <p className="text-xs text-muted-foreground/60 mt-1">PNG, JPG ou JPEG (max. 5Mo)</p>
+                      </div>
+                      <input
+                        type="file"
+                        className="hidden"
+                        accept="image/*"
+                        onChange={handleFileChange}
+                      />
+                    </label>
+                  )}
+                </div>
+              </div>
             </div>
             <DialogFooter>
-              <Button variant="outline" onClick={() => setShowItemDialog(false)}>
+              <Button variant="outline" onClick={() => setShowItemDialog(false)} disabled={isUploading}>
                 Annuler
               </Button>
               <Button
                 onClick={handleSaveItem}
-                disabled={!itemForm.name.trim() || !itemForm.category || !itemForm.price || categories.length === 0}
+                disabled={!itemForm.name.trim() || !itemForm.category || !itemForm.price || categories.length === 0 || isUploading}
               >
-                {editingItem ? 'Modifier' : 'Créer'}
+                {isUploading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Enregistrement...
+                  </>
+                ) : (
+                  editingItem ? 'Modifier' : 'Créer'
+                )}
               </Button>
             </DialogFooter>
           </DialogContent>

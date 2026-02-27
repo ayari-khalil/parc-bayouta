@@ -40,7 +40,7 @@ export interface FieldReservation {
 
 export const reservationApi = {
     // Hall Reservations
-    createHallReservation: async (reservation: Omit<HallReservation, 'status'> & { status?: 'pending' | 'blocked' }): Promise<HallReservation> => {
+    createHallReservation: async (reservation: Omit<HallReservation, 'status'> & { status?: 'pending' | 'confirmed' | 'blocked' }): Promise<HallReservation> => {
         const response = await fetch(`${API_URL}/hall-reservations`, {
             method: 'POST',
             headers: {
@@ -95,7 +95,7 @@ export const reservationApi = {
     },
 
     // Field Reservations
-    createFieldReservation: async (reservation: Omit<FieldReservation, 'status'> & { status?: 'pending' | 'blocked' }): Promise<FieldReservation> => {
+    createFieldReservation: async (reservation: Omit<FieldReservation, 'status'> & { status?: 'pending' | 'confirmed' | 'blocked' }): Promise<FieldReservation> => {
         const response = await fetch(`${API_URL}/field-reservations`, {
             method: 'POST',
             headers: {

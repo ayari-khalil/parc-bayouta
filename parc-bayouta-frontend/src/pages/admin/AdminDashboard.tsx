@@ -221,6 +221,39 @@ export default function AdminDashboard() {
 
               <div className="bg-card rounded-xl p-4 sm:p-6 shadow-soft border border-border/50 h-full">
                 <h2 className="font-display text-lg sm:text-xl font-bold text-foreground mb-4 flex items-center gap-2">
+                  <PartyPopper className="w-5 h-5 text-secondary" />
+                  Dernières réservations salle
+                </h2>
+                <div className="space-y-3">
+                  {realHallReservations.length > 0 ? (
+                    [...realHallReservations]
+                      .sort((a, b) => new Date(b.createdAt || '').getTime() - new Date(a.createdAt || '').getTime())
+                      .slice(0, 5)
+                      .map((res) => (
+                        <div key={res.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-3 bg-muted/30 rounded-lg gap-2">
+                          <div className="min-w-0">
+                            <p className="font-semibold text-foreground truncate">{res.customerName}</p>
+                            <p className="text-xs sm:text-sm text-muted-foreground">
+                              {res.eventType} • {format(new Date(res.date), "dd MMM yyyy", { locale: fr })}
+                            </p>
+                          </div>
+                          <span className={`self-start sm:self-center px-2 py-0.5 rounded-full text-[10px] sm:text-xs font-semibold whitespace-nowrap ${res.status === 'confirmed' ? 'bg-green-500/10 text-green-600' :
+                            res.status === 'pending' ? 'bg-yellow-500/10 text-yellow-600' :
+                              res.status === 'blocked' ? 'bg-gray-500/10 text-gray-600' :
+                                'bg-red-500/10 text-red-600'
+                            }`}>
+                            {res.status === 'confirmed' ? 'Confirmé' : res.status === 'pending' ? 'En attente' : res.status === 'blocked' ? 'Bloqué' : 'Annulé'}
+                          </span>
+                        </div>
+                      ))
+                  ) : (
+                    <p className="text-center py-8 text-muted-foreground text-sm italic">Aucune réservation de salle récente</p>
+                  )}
+                </div>
+              </div>
+
+              <div className="bg-card rounded-xl p-4 sm:p-6 shadow-soft border border-border/50 h-full">
+                <h2 className="font-display text-lg sm:text-xl font-bold text-foreground mb-4 flex items-center gap-2">
                   <CalendarDays className="w-5 h-5 text-primary" />
                   Événements
                 </h2>

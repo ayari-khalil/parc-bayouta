@@ -177,3 +177,22 @@ export const deleteMenuItem = async (id: string): Promise<void> => {
         throw new Error('Failed to delete menu item');
     }
 };
+
+/**
+ * Upload an image
+ */
+export const uploadImage = async (file: File): Promise<{ url: string }> => {
+    const formData = new FormData();
+    formData.append('image', file);
+
+    const response = await fetch(`${API_URL}/api/upload`, {
+        method: 'POST',
+        body: formData,
+    });
+
+    if (!response.ok) {
+        throw new Error('Failed to upload image');
+    }
+
+    return response.json();
+};

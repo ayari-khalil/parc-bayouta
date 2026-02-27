@@ -15,6 +15,8 @@ import * as menuApi from "@/api/menuApi";
 import * as orderApi from "@/api/orderApi";
 import * as notificationApi from "@/api/notificationApi";
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+
 const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
     Coffee,
     IceCream,
@@ -196,12 +198,12 @@ export default function CafeOrder() {
                                 key={item.id}
                                 className="bg-card border border-border/40 rounded-2xl overflow-hidden shadow-sm flex flex-col group"
                             >
-                                <div className="relative h-48 w-full bg-muted overflow-hidden">
+                                <div className="relative h-32 sm:h-48 w-full bg-muted overflow-hidden">
                                     {item.image ? (
                                         <img src={item.image} alt={item.name} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
                                     ) : (
                                         <div className="w-full h-full flex items-center justify-center text-muted-foreground/20">
-                                            <UtensilsCrossed className="w-12 h-12" />
+                                            <UtensilsCrossed className="w-8 h-8 sm:w-12 sm:h-12" />
                                         </div>
                                     )}
                                     <div className="absolute top-4 right-4 bg-background/90 px-3 py-1 rounded-full text-xs font-bold text-accent shadow-sm border border-border/10">

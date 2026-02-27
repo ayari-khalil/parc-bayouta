@@ -58,28 +58,19 @@ export default function Events() {
     return events
       .filter(event => event.isActive)
       .filter(event => {
-        // Search filter
         if (search) {
-          const searchLower = search.toLowerCase();
-          return (
-            event.title.toLowerCase().includes(searchLower) ||
-            event.description.toLowerCase().includes(searchLower)
-          );
+          const s = search.toLowerCase();
+          return event.title.toLowerCase().includes(s) || event.description.toLowerCase().includes(s);
         }
         return true;
       })
       .filter(event => {
-        // Date filter
         const eventDate = parseISO(event.date);
         if (dateFilter === 'upcoming') return isAfter(eventDate, now) || format(eventDate, 'yyyy-MM-dd') === format(now, 'yyyy-MM-dd');
-        if (dateFilter === 'past') return isBefore(eventDate, now);
+        if (dateFilter === 'past') return isBefore(eventDate, now) && format(eventDate, 'yyyy-MM-dd') !== format(now, 'yyyy-MM-dd');
         return true;
       })
-      .filter(event => {
-        // Category filter
-        if (categoryFilter !== 'all') return event.category === categoryFilter;
-        return true;
-      })
+      .filter(event => categoryFilter === 'all' || event.category === categoryFilter)
       .sort((a, b) => {
         const dateA = parseISO(a.date);
         const dateB = parseISO(b.date);
@@ -88,6 +79,17 @@ export default function Events() {
           : dateA.getTime() - dateB.getTime();
       });
   }, [events, search, dateFilter, categoryFilter]);
+
+  const upcomingCount = useMemo(() => {
+    const now = new Date();
+    return events.filter(e => e.isActive && (isAfter(parseISO(e.date), now) || format(parseISO(e.date), 'yyyy-MM-dd') === format(now, 'yyyy-MM-dd'))).length;
+  }, [events]);
+
+  const pastCount = useMemo(() => {
+    const now = new Date();
+    return events.filter(e => e.isActive && isBefore(parseISO(e.date), now) && format(parseISO(e.date), 'yyyy-MM-dd') !== format(now, 'yyyy-MM-dd')).length;
+  }, [events]);
+
 
   return (
     <PublicLayout>
@@ -113,7 +115,7 @@ export default function Events() {
       </section>
 
       {/* Filters */}
-      <section className="py-8 bg-background border-b border-border sticky top-16 z-30 backdrop-blur-md bg-background/95">
+      <section className="py-6 bg-background border-b border-border sticky top-16 z-30 backdrop-blur-md bg-background/95">
         <div className="container mx-auto px-4">
           <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
             {/* Search */}
@@ -133,17 +135,23 @@ export default function Events() {
               <div className="flex gap-1 bg-muted rounded-lg p-1">
                 <button
                   onClick={() => setDateFilter('upcoming')}
-                  className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${dateFilter === 'upcoming' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'
+                  className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors flex items-center gap-1.5 ${dateFilter === 'upcoming' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'
                     }`}
                 >
                   À venir
+                  {upcomingCount > 0 && (
+                    <span className="text-xs bg-primary text-primary-foreground px-1.5 py-0.5 rounded-full">{upcomingCount}</span>
+                  )}
                 </button>
                 <button
                   onClick={() => setDateFilter('past')}
-                  className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${dateFilter === 'past' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'
+                  className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors flex items-center gap-1.5 ${dateFilter === 'past' ? 'bg-background shadow-sm text-foreground' : 'text-muted-foreground hover:text-foreground'
                     }`}
                 >
                   Passés
+                  {pastCount > 0 && (
+                    <span className="text-xs bg-muted-foreground/30 text-foreground px-1.5 py-0.5 rounded-full">{pastCount}</span>
+                  )}
                 </button>
                 <button
                   onClick={() => setDateFilter('all')}
@@ -181,11 +189,18 @@ export default function Events() {
             <div className="text-center py-16">
               <CalendarDays className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
               <h3 className="font-display text-2xl font-bold text-foreground mb-2">
-                Aucun événement trouvé
+                {dateFilter === 'upcoming' ? 'Aucun événement à venir' : 'Aucun événement trouvé'}
               </h3>
-              <p className="text-muted-foreground">
-                Essayez de modifier vos filtres ou revenez plus tard.
+              <p className="text-muted-foreground mb-6">
+                {dateFilter === 'upcoming'
+                  ? 'De nouveaux événements seront bientôt disponibles.'
+                  : 'Essayez de modifier vos filtres.'}
               </p>
+              {dateFilter === 'upcoming' && pastCount > 0 && (
+                <Button variant="outline" onClick={() => setDateFilter('past')}>
+                  Voir les {pastCount} événements passés
+                </Button>
+              )}
             </div>
           ) : (
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -202,11 +217,21 @@ export default function Events() {
                     className="bg-card rounded-2xl overflow-hidden shadow-card card-hover group"
                   >
                     <div className="relative h-48">
-                      <img
-                        src={event.image}
-                        alt={event.title}
-                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                      />
+                      {event.image ? (
+                        <img
+                          src={event.image}
+                          alt={event.title}
+                          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                        />
+                      ) : (
+                        <div className={`w-full h-full transition-transform duration-500 group-hover:scale-105 ${event.category === 'movie' ? 'bg-gradient-to-br from-blue-600 to-blue-900' :
+                          event.category === 'gaming' ? 'bg-gradient-to-br from-purple-600 to-purple-900' :
+                            event.category === 'party' ? 'bg-gradient-to-br from-pink-600 to-pink-900' :
+                              event.category === 'kids' ? 'bg-gradient-to-br from-orange-500 to-orange-800' :
+                                event.category === 'tournament' ? 'bg-gradient-to-br from-emerald-600 to-emerald-900' :
+                                  'bg-gradient-to-br from-gray-600 to-gray-900'
+                          }`} />
+                      )}
                       <div className="absolute inset-0 bg-gradient-to-t from-foreground/60 to-transparent" />
                       <div className="absolute top-3 left-3 flex gap-2">
                         <span className={`px-3 py-1 rounded-full text-xs font-medium backdrop-blur-sm ${getCategoryColor(event.category)}`}>
@@ -249,7 +274,7 @@ export default function Events() {
 
                       <div className="flex items-center justify-between">
                         <span className="text-xl font-bold text-primary">
-                          {event.price.toLocaleString()} DA
+                          {event.price.toLocaleString()} DT
                         </span>
                         <Button size="sm" disabled={isFull} asChild>
                           <Link to={`/events/${event.slug}`}>

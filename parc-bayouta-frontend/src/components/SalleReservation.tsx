@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { Calendar, Users, PartyPopper, Check, ChevronLeft, ChevronRight } from "lucide-react";
 import { useNotification } from "@/contexts/NotificationContext";
 import { Button } from "./ui/button";
+import { toast } from "sonner";
 import { format, addMonths, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isToday, isBefore, getDay } from "date-fns";
 import { fr } from "date-fns/locale";
 import salleImg from "@/assets/salle-fetes.jpg";
@@ -339,6 +340,7 @@ export const SalleReservation = () => {
                           className="flex-1"
                           onClick={() => {
                             addNotification();
+                            toast.success("Votre demande de réservation a été envoyée !");
                             setShowForm(false);
                           }}
                         >

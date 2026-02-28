@@ -22,29 +22,7 @@ import { useAuth } from "@/contexts/AuthContext";
 export default function AdminOrders() {
     const { user } = useAuth();
     const queryClient = useQueryClient();
-    const [isAudioEnabled, setIsAudioEnabled] = useState(false);
-    const notificationSound = useRef<HTMLAudioElement | null>(null);
-    const [exportDate, setExportDate] = useState(format(new Date(), 'yyyy-MM-dd'));
 
-    const lastOrderCount = useRef(0);
-    const lastNotifCount = useRef(0);
-
-    useEffect(() => {
-        notificationSound.current = new Audio("https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3");
-
-        const unlockAudio = () => {
-            if (notificationSound.current) {
-                notificationSound.current.volume = 0;
-                notificationSound.current.play().then(() => {
-                    notificationSound.current!.volume = 1.0;
-                    setIsAudioEnabled(true);
-                    window.removeEventListener('click', unlockAudio);
-                }).catch(() => { });
-            }
-        };
-        window.addEventListener('click', unlockAudio);
-        return () => window.removeEventListener('click', unlockAudio);
-    }, []);
 
     // Queries
     const { data: orders = [], isLoading: ordersLoading } = useQuery({
@@ -59,23 +37,7 @@ export default function AdminOrders() {
         refetchInterval: 10000,
     });
 
-    // Sound triggers
-    useEffect(() => {
-        if (orders.length > lastOrderCount.current && lastOrderCount.current !== 0) {
-            if (isAudioEnabled) notificationSound.current?.play();
-            toast.info("Nouvelle commande !", { icon: <ShoppingBag className="w-4 h-4" /> });
-        }
-        lastOrderCount.current = orders.length;
-    }, [orders, isAudioEnabled]);
-
-    useEffect(() => {
-        const unreadNotifs = notifications.filter(n => !n.isRead).length;
-        if (unreadNotifs > lastNotifCount.current) {
-            if (isAudioEnabled) notificationSound.current?.play();
-            toast.warning("Nouvel appel client !");
-        }
-        lastNotifCount.current = unreadNotifs;
-    }, [notifications, isAudioEnabled]);
+    const [exportDate, setExportDate] = useState(format(new Date(), 'yyyy-MM-dd'));
 
     // Mutations
     const updateStatusMutation = useMutation({
@@ -196,15 +158,6 @@ export default function AdminOrders() {
                         <h1 className="font-display text-3xl font-bold text-foreground">Gestion Restaurant</h1>
                         <p className="text-muted-foreground">Suivi des commandes et appels serveurs en temps réel</p>
                     </div>
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setIsAudioEnabled(!isAudioEnabled)}
-                        className="rounded-full gap-2"
-                    >
-                        {isAudioEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4" />}
-                        Son {isAudioEnabled ? 'Activé' : 'Désactivé'}
-                    </Button>
                 </div>
 
                 <Tabs defaultValue="orders" className="w-full">

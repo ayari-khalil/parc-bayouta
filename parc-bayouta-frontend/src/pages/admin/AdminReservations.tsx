@@ -60,7 +60,6 @@ export default function AdminReservations() {
   const [statusFilter, setStatusFilter] = useState<string>("pending");
   const [dateFilter, setDateFilter] = useState<string>("");
   const [fields, setFields] = useState(initialFields);
-  const [isAudioEnabled, setIsAudioEnabled] = useState(false);
   const [loading, setLoading] = useState(true);
 
   const [realFieldReservations, setRealFieldReservations] = useState<FieldReservation[]>([]);
@@ -76,31 +75,13 @@ export default function AdminReservations() {
   const [exportRange, setExportRange] = useState<ExportRange>("7days");
   const [isExporting, setIsExporting] = useState(false);
 
-  const lastHallCount = useRef(0);
-  const lastFieldCount = useRef(0);
-  const notificationSound = useRef<HTMLAudioElement | null>(null);
+
 
   useEffect(() => {
-    notificationSound.current = new Audio("https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3");
-
     // Request Notification Permission
     if ("Notification" in window && Notification.permission === "default") {
       Notification.requestPermission();
     }
-
-    // Auto-unlock audio on first user interaction
-    const unlockAudio = () => {
-      if (notificationSound.current) {
-        notificationSound.current.volume = 0;
-        notificationSound.current.play().then(() => {
-          notificationSound.current!.volume = 1.0;
-          setIsAudioEnabled(true);
-          window.removeEventListener('click', unlockAudio);
-          console.log("Audio context unlocked automatically");
-        }).catch(e => console.log("Unlock failed:", e));
-      }
-    };
-    window.addEventListener('click', unlockAudio);
 
     fetchInitialData();
     const interval = setInterval(() => {
@@ -108,18 +89,10 @@ export default function AdminReservations() {
       fetchFieldReservations();
       fetchEventReservations();
     }, 10000);
-    return () => {
-      clearInterval(interval);
-      window.removeEventListener('click', unlockAudio);
-    };
+    return () => clearInterval(interval);
   }, []);
 
-  const playNotificationSound = () => {
-    if (isAudioEnabled && notificationSound.current) {
-      notificationSound.current.currentTime = 0;
-      notificationSound.current.play().catch(e => console.error("Notification sound failed:", e));
-    }
-  };
+
 
   const fetchInitialData = async () => {
     try {
@@ -145,8 +118,8 @@ export default function AdminReservations() {
       setRealEventReservations(eventResData);
       setRealEvents(eventsData);
       setHalls(hallsData);
-      lastHallCount.current = hallData.length;
-      lastFieldCount.current = fieldData.length;
+      setRealHallReservations(hallData);
+      setRealFieldReservations(fieldData);
     } catch (error) {
       console.error("Failed to fetch initial data:", error);
     } finally {
@@ -157,21 +130,7 @@ export default function AdminReservations() {
   const fetchHallReservations = async () => {
     try {
       const data = await reservationApi.getAllHallReservations();
-      if (lastHallCount.current > 0 && data.length > lastHallCount.current) {
-        playNotificationSound();
-        if ("Notification" in window && Notification.permission === "granted") {
-          new Notification("Nouvelle réservation Salle", {
-            body: "Une nouvelle demande de réservation pour la salle a été reçue.",
-          });
-        }
-        toast({
-          title: "Nouvelle réservation Salle",
-          description: "Une nouvelle demande de réservation pour la salle a été reçue.",
-          className: "bg-secondary text-white border-none",
-        });
-      }
       setRealHallReservations(data);
-      lastHallCount.current = data.length;
     } catch (error) {
       console.error("Failed to fetch hall reservations:", error);
     }
@@ -180,21 +139,7 @@ export default function AdminReservations() {
   const fetchFieldReservations = async () => {
     try {
       const data = await reservationApi.getAllFieldReservations();
-      if (lastFieldCount.current > 0 && data.length > lastFieldCount.current) {
-        playNotificationSound();
-        if ("Notification" in window && Notification.permission === "granted") {
-          new Notification("Nouvelle réservation Terrain", {
-            body: "Un nouveau créneau a été réservé sur les terrains.",
-          });
-        }
-        toast({
-          title: "Nouvelle réservation Terrain",
-          description: "Un nouveau créneau a été réservé sur les terrains.",
-          className: "bg-primary text-white border-none",
-        });
-      }
       setRealFieldReservations(data);
-      lastFieldCount.current = data.length;
     } catch (error) {
       console.error("Failed to fetch field reservations:", error);
     }
@@ -531,12 +476,6 @@ export default function AdminReservations() {
               <h1 className="text-2xl font-display font-bold">Gestion des Réservations</h1>
               <p className="text-muted-foreground">Suivez et gérez toutes les demandes de réservation</p>
             </div>
-            {isAudioEnabled && (
-              <Badge variant="outline" className="text-green-600 bg-green-500/10 border-green-500/20 gap-1 hidden sm:flex">
-                <Volume2 className="w-3 h-3" />
-                Alertes sonores actives
-              </Badge>
-            )}
           </div>
           <Button variant="outline" onClick={() => setShowExportDialog(true)}>
             <Download className="w-4 h-4 mr-2" />

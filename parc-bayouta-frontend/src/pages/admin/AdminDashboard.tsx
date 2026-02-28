@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
-import { Calendar, Users, PartyPopper, CalendarDays, TrendingUp, Clock, History, User, Volume2, VolumeX, Building2, Castle } from "lucide-react";
+import { Calendar, Users, PartyPopper, CalendarDays, TrendingUp, Clock, History, User, Building2, Castle } from "lucide-react";
 import { AdminLayout } from "@/components/layout/AdminLayout";
-import { Button } from "@/components/ui/button";
 import { reservationApi, HallReservation, FieldReservation, Hall } from "@/lib/api/reservation";
 import { getTodayVisits } from "@/api/analyticsApi";
 import { eventApi, messageApi, Event, ContactMessage } from "@/api/dashboardApi";
@@ -10,8 +9,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { format } from "date-fns";
 import { fr } from "date-fns/locale";
-import { useToast } from "@/hooks/use-toast";
-import { useRef } from "react";
 
 export default function AdminDashboard() {
   const [realHallReservations, setRealHallReservations] = useState<HallReservation[]>([]);
@@ -22,50 +19,17 @@ export default function AdminDashboard() {
   const [auditLogs, setAuditLogs] = useState<AuditLog[]>([]);
   const [todayVisits, setTodayVisits] = useState<number>(0);
   const [isLoading, setIsLoading] = useState(true);
-  const [isAudioEnabled, setIsAudioEnabled] = useState(false);
-  const { toast } = useToast();
-
-  const lastHallCount = useRef(0);
-  const lastFieldCount = useRef(0);
-  const notificationSound = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
-    // New louder chime sound
-    notificationSound.current = new Audio("https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3");
-
     // Request Notification Permission
     if ("Notification" in window && Notification.permission === "default") {
       Notification.requestPermission();
     }
 
-    // Auto-unlock audio on first user interaction
-    const unlockAudio = () => {
-      if (notificationSound.current) {
-        notificationSound.current.volume = 0;
-        notificationSound.current.play().then(() => {
-          notificationSound.current!.volume = 1.0;
-          setIsAudioEnabled(true);
-          window.removeEventListener('click', unlockAudio);
-          console.log("Audio context unlocked automatically");
-        }).catch(e => console.log("Unlock failed:", e));
-      }
-    };
-    window.addEventListener('click', unlockAudio);
-
     fetchAllData();
     const interval = setInterval(fetchAllData, 10000);
-    return () => {
-      clearInterval(interval);
-      window.removeEventListener('click', unlockAudio);
-    };
+    return () => clearInterval(interval);
   }, []);
-
-  const playNotificationSound = () => {
-    if (notificationSound.current) {
-      notificationSound.current.currentTime = 0;
-      notificationSound.current.play().catch(e => console.error("Notification sound failed:", e));
-    }
-  };
 
   const fetchAllData = async () => {
     try {
@@ -79,43 +43,6 @@ export default function AdminDashboard() {
         reservationApi.getHalls()
       ]);
 
-      // Check for new reservations to play sound
-      if (lastHallCount.current > 0 && hallRes.length > lastHallCount.current) {
-        playNotificationSound();
-
-        // Browser Notification
-        if ("Notification" in window && Notification.permission === "granted") {
-          new Notification("Nouvelle réservation Salle", {
-            body: "Une nouvelle demande de réservation pour la salle a été reçue.",
-            icon: "/favicon.ico" // assuming there is one
-          });
-        }
-
-        toast({
-          title: "Nouvelle réservation Salle",
-          description: "Une nouvelle demande de réservation pour la salle a été reçue.",
-          className: "bg-secondary text-white border-none",
-        });
-      }
-
-      if (lastFieldCount.current > 0 && fieldRes.length > lastFieldCount.current) {
-        playNotificationSound();
-
-        // Browser Notification
-        if ("Notification" in window && Notification.permission === "granted") {
-          new Notification("Nouvelle réservation Terrain", {
-            body: "Un nouveau créneau a été réservé sur les terrains.",
-            icon: "/favicon.ico"
-          });
-        }
-
-        toast({
-          title: "Nouvelle réservation Terrain",
-          description: "Un nouveau créneau a été réservé sur les terrains.",
-          className: "bg-primary text-white border-none",
-        });
-      }
-
       setRealHallReservations(hallRes);
       setFieldReservations(fieldRes);
       setEvents(evs);
@@ -123,9 +50,6 @@ export default function AdminDashboard() {
       setTodayVisits(visits.count);
       setAuditLogs(logs);
       setHalls(hallsData);
-
-      lastHallCount.current = hallRes.length;
-      lastFieldCount.current = fieldRes.length;
     } catch (error) {
       console.error("Failed to fetch dashboard data:", error);
     } finally {
@@ -153,12 +77,6 @@ export default function AdminDashboard() {
               <h1 className="font-display text-2xl sm:text-3xl font-bold text-foreground">Tableau de bord</h1>
               <p className="text-muted-foreground text-sm sm:base">Vue d'ensemble de votre activité</p>
             </div>
-            {isAudioEnabled && (
-              <Badge variant="outline" className="text-green-600 bg-green-500/10 border-green-500/20 gap-1 hidden sm:flex">
-                <Volume2 className="w-3 h-3" />
-                Alertes sonores actives
-              </Badge>
-            )}
           </div>
           {isLoading && <span className="text-xs text-primary animate-pulse font-medium">Mise à jour...</span>}
         </div>
@@ -349,5 +267,3 @@ export default function AdminDashboard() {
     </AdminLayout>
   );
 }
-
-

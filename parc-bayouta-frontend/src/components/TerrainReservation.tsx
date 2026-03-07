@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { Calendar, Clock, MapPin, Check, ChevronLeft, ChevronRight } from "lucide-react";
 import { useNotification } from "@/contexts/NotificationContext";
 import { Button } from "./ui/button";
+import { toast } from "sonner";
 import { format, addDays, startOfWeek, isSameDay, isToday, isBefore } from "date-fns";
 import { fr } from "date-fns/locale";
 import terrainImg from "@/assets/terrain-foot.jpg";
@@ -327,6 +328,7 @@ export const TerrainReservation = () => {
                           className="flex-1"
                           onClick={() => {
                             addNotification();
+                            toast.success("Votre demande de réservation a été envoyée !");
                             setShowForm(false);
                           }}
                         >

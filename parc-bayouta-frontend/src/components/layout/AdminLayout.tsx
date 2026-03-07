@@ -50,19 +50,12 @@ export const AdminLayout = ({ children }: AdminLayoutProps) => {
   };
 
   /* User Section logic... */
-  const { unreadCount, resetNotifications } = useNotification();
-
-  useEffect(() => {
-    if (location.pathname === "/admin/reservations") {
-      resetNotifications();
-    }
-  }, [location.pathname, resetNotifications]);
+  const { unreadCount, adminStats } = useNotification();
 
   const SidebarContent = () => (
     <>
       {/* Logo */}
       <div className="p-4 border-b border-border">
-        {/* ... */}
         <Link to="/admin" className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center">
             <span className="text-primary-foreground font-display font-bold text-lg">B</span>
@@ -82,31 +75,35 @@ export const AdminLayout = ({ children }: AdminLayoutProps) => {
           const isActive = location.pathname === link.href ||
             (link.href !== "/admin" && location.pathname.startsWith(link.href));
 
+          let count = 0;
+          if (link.name === "Commandes") count = adminStats.pendingOrders;
+          if (link.name === "Réservations") count = adminStats.pendingFieldRes + adminStats.pendingHallRes;
+          if (link.name === "Messages") count = adminStats.newMessages;
+
           return (
             <Link
               key={link.name}
               to={link.href}
-              onClick={() => {
-                setMobileSidebarOpen(false);
-                if (link.href === "/admin/reservations") resetNotifications();
-              }}
+              onClick={() => setMobileSidebarOpen(false)}
               className={cn(
                 "flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors relative",
                 isActive
                   ? "bg-primary text-primary-foreground"
-                  : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                  : count > 0
+                    ? "text-red-500 hover:bg-red-50 font-bold"
+                    : "text-muted-foreground hover:bg-muted hover:text-foreground"
               )}
             >
-              <link.icon className="w-5 h-5 flex-shrink-0" />
+              <link.icon className={cn("w-5 h-5 flex-shrink-0", count > 0 && !isActive && "animate-pulse")} />
               {sidebarOpen && <span className="font-medium">{link.name}</span>}
 
               {/* Notification Badge */}
-              {link.name === "Réservations" && unreadCount > 0 && (
+              {count > 0 && (
                 <span className={cn(
                   "absolute flex items-center justify-center bg-red-600 text-white text-[10px] font-bold rounded-full shadow-lg z-20 border-2 border-card animate-in zoom-in duration-300",
                   sidebarOpen ? "right-3 top-1/2 -translate-y-1/2 w-5 h-5" : "top-0 right-0 w-4 h-4 shadow-sm"
                 )}>
-                  {unreadCount > 9 ? "9+" : unreadCount}
+                  {count > 9 ? "9+" : count}
                 </span>
               )}
             </Link>

@@ -369,17 +369,7 @@ export default function CafeRestaurant() {
                   </div>
                 )}
 
-                <Button
-                  variant="accent"
-                  size="lg"
-                  className="w-full rounded-2xl h-14 text-lg font-bold"
-                  onClick={() => {
-                    // Navigate to ordering page or just close for now
-                    window.location.href = '/order';
-                  }}
-                >
-                  Commander maintenant
-                </Button>
+                {/* Button removed as per user request to avoid 404 */}
               </div>
             </div>
           )}

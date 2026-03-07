@@ -6,7 +6,7 @@ import { Button } from "./ui/button";
 import { toast } from "sonner";
 import { format, addMonths, startOfMonth, endOfMonth, eachDayOfInterval, isSameMonth, isToday, isBefore, getDay } from "date-fns";
 import { fr } from "date-fns/locale";
-import salleImg from "@/assets/salle-fetes.jpg";
+import salleImg from "@/assets/salle-fetes.webp";
 
 // Simulated booked dates
 const bookedDates = [

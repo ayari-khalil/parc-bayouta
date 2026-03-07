@@ -1,7 +1,7 @@
 import { motion } from "framer-motion";
 import { Coffee, UtensilsCrossed, Cake, IceCream, Wine, Download } from "lucide-react";
 import { Button } from "./ui/button";
-import cafeImg from "@/assets/cafe-restaurant.jpg";
+import cafeImg from "@/assets/cafe-restaurant.webp";
 
 const menuCategories = [
   {

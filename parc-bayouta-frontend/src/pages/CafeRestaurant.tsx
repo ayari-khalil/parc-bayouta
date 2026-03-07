@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/dialog";
 import { Info } from "lucide-react";
 import * as menuApi from "@/api/menuApi";
-import cafeImg from "@/assets/cafe-restaurant.jpg";
+import cafeImg from "@/assets/cafe-restaurant.webp";
 
 const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   Coffee,
@@ -96,6 +96,7 @@ export default function CafeRestaurant() {
             <img
               src={cafeImg}
               alt="Café-Restaurant Parc Bayouta"
+              loading="lazy"
               className="w-full h-full object-cover"
             />
             <div className="absolute inset-0 bg-gradient-to-r from-foreground/60 via-foreground/30 to-transparent flex items-center">
@@ -194,6 +195,7 @@ export default function CafeRestaurant() {
                               <img
                                 src={`${API_URL}${item.image.startsWith('/') ? '' : '/'}${item.image}`}
                                 alt={item.name}
+                                loading="lazy"
                                 className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                               />
                             ) : (

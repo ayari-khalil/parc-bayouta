@@ -1,7 +1,7 @@
 import { motion } from "framer-motion";
 import { ArrowDown, Calendar, PartyPopper, Coffee } from "lucide-react";
 import { Button } from "./ui/button";
-import heroBg from "@/assets/hero-bg.jpg";
+import heroBg from "@/assets/hero-bg.webp";
 import logoHero from "@/assets/logo-hero.png";
 import { useState, useEffect } from "react";
 import { getSettings, HomeContent } from "@/api/settingsApi";

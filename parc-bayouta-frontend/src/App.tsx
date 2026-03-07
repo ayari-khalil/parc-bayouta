@@ -7,34 +7,41 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import { NotificationProvider } from "@/contexts/NotificationContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 
-// Public Pages
-import Home from "./pages/Home";
-import Fields from "./pages/Fields";
-import EventHall from "./pages/EventHall";
-import EventDetails from "./pages/EventDetails";
-import CafeRestaurant from "./pages/CafeRestaurant";
-import CafeOrder from "./pages/CafeOrder";
-import Events from "./pages/Events";
-import Contact from "./pages/Contact";
-import NotFound from "./pages/NotFound";
-
-// Admin Pages
-import AdminLogin from "./pages/admin/AdminLogin";
-import AdminDashboard from "./pages/admin/AdminDashboard";
-import AdminFields from "./pages/admin/AdminFields";
-import AdminEventHall from "./pages/admin/AdminEventHall";
-import AdminMenu from "./pages/admin/AdminMenu";
-import AdminOrders from "./pages/admin/AdminOrders";
-import AdminEvents from "./pages/admin/AdminEvents";
-import AdminEventReservations from "./pages/admin/AdminEventReservations";
-import AdminReservations from "./pages/admin/AdminReservations";
-import AdminMessages from "./pages/admin/AdminMessages";
-import AdminSettings from "./pages/admin/AdminSettings";
-
 import { recordVisit } from "@/api/analyticsApi";
-import { useEffect } from "react";
+import { lazy, Suspense, useEffect } from "react";
+import { Loader2 } from "lucide-react";
+
+// Lazy-loaded Public Pages
+const Home = lazy(() => import("./pages/Home"));
+const Fields = lazy(() => import("./pages/Fields"));
+const EventHall = lazy(() => import("./pages/EventHall"));
+const EventDetails = lazy(() => import("./pages/EventDetails"));
+const CafeRestaurant = lazy(() => import("./pages/CafeRestaurant"));
+const CafeOrder = lazy(() => import("./pages/CafeOrder"));
+const Events = lazy(() => import("./pages/Events"));
+const Contact = lazy(() => import("./pages/Contact"));
+const NotFound = lazy(() => import("./pages/NotFound"));
+
+// Lazy-loaded Admin Pages
+const AdminLogin = lazy(() => import("./pages/admin/AdminLogin"));
+const AdminDashboard = lazy(() => import("./pages/admin/AdminDashboard"));
+const AdminFields = lazy(() => import("./pages/admin/AdminFields"));
+const AdminEventHall = lazy(() => import("./pages/admin/AdminEventHall"));
+const AdminMenu = lazy(() => import("./pages/admin/AdminMenu"));
+const AdminOrders = lazy(() => import("./pages/admin/AdminOrders"));
+const AdminEvents = lazy(() => import("./pages/admin/AdminEvents"));
+const AdminEventReservations = lazy(() => import("./pages/admin/AdminEventReservations"));
+const AdminReservations = lazy(() => import("./pages/admin/AdminReservations"));
+const AdminMessages = lazy(() => import("./pages/admin/AdminMessages"));
+const AdminSettings = lazy(() => import("./pages/admin/AdminSettings"));
 
 const queryClient = new QueryClient();
+
+const PageLoader = () => (
+  <div className="flex items-center justify-center h-screen bg-background">
+    <Loader2 className="w-10 h-10 animate-spin text-primary" />
+  </div>
+);
 
 const App = () => {
   useEffect(() => {
@@ -57,32 +64,34 @@ const App = () => {
             <NotificationProvider>
               <Toaster />
               <Sonner position="top-center" />
-              <Routes>
-                {/* Public Routes */}
-                <Route path="/" element={<Home />} />
-                <Route path="/fields" element={<Fields />} />
-                <Route path="/event-hall" element={<EventHall />} />
-                <Route path="/cafe-restaurant" element={<CafeRestaurant />} />
-                <Route path="/cafe-order" element={<CafeOrder />} />
-                <Route path="/events" element={<Events />} />
-                <Route path="/events/:slug" element={<EventDetails />} />
-                <Route path="/contact" element={<Contact />} />
+              <Suspense fallback={<PageLoader />}>
+                <Routes>
+                  {/* Public Routes */}
+                  <Route path="/" element={<Home />} />
+                  <Route path="/fields" element={<Fields />} />
+                  <Route path="/event-hall" element={<EventHall />} />
+                  <Route path="/cafe-restaurant" element={<CafeRestaurant />} />
+                  <Route path="/cafe-order" element={<CafeOrder />} />
+                  <Route path="/events" element={<Events />} />
+                  <Route path="/events/:slug" element={<EventDetails />} />
+                  <Route path="/contact" element={<Contact />} />
 
-                {/* Admin Routes */}
-                <Route path="/admin/login" element={<AdminLogin />} />
-                <Route path="/admin" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
-                <Route path="/admin/fields" element={<ProtectedRoute><AdminFields /></ProtectedRoute>} />
-                <Route path="/admin/event-hall" element={<ProtectedRoute><AdminEventHall /></ProtectedRoute>} />
-                <Route path="/admin/menu" element={<ProtectedRoute><AdminMenu /></ProtectedRoute>} />
-                <Route path="/admin/orders" element={<ProtectedRoute><AdminOrders /></ProtectedRoute>} />
-                <Route path="/admin/events" element={<ProtectedRoute><AdminEvents /></ProtectedRoute>} />
-                <Route path="/admin/event-reservations" element={<ProtectedRoute><AdminEventReservations /></ProtectedRoute>} />
-                <Route path="/admin/reservations" element={<ProtectedRoute><AdminReservations /></ProtectedRoute>} />
-                <Route path="/admin/messages" element={<ProtectedRoute><AdminMessages /></ProtectedRoute>} />
-                <Route path="/admin/settings" element={<ProtectedRoute><AdminSettings /></ProtectedRoute>} />
+                  {/* Admin Routes */}
+                  <Route path="/admin/login" element={<AdminLogin />} />
+                  <Route path="/admin" element={<ProtectedRoute><AdminDashboard /></ProtectedRoute>} />
+                  <Route path="/admin/fields" element={<ProtectedRoute><AdminFields /></ProtectedRoute>} />
+                  <Route path="/admin/event-hall" element={<ProtectedRoute><AdminEventHall /></ProtectedRoute>} />
+                  <Route path="/admin/menu" element={<ProtectedRoute><AdminMenu /></ProtectedRoute>} />
+                  <Route path="/admin/orders" element={<ProtectedRoute><AdminOrders /></ProtectedRoute>} />
+                  <Route path="/admin/events" element={<ProtectedRoute><AdminEvents /></ProtectedRoute>} />
+                  <Route path="/admin/event-reservations" element={<ProtectedRoute><AdminEventReservations /></ProtectedRoute>} />
+                  <Route path="/admin/reservations" element={<ProtectedRoute><AdminReservations /></ProtectedRoute>} />
+                  <Route path="/admin/messages" element={<ProtectedRoute><AdminMessages /></ProtectedRoute>} />
+                  <Route path="/admin/settings" element={<ProtectedRoute><AdminSettings /></ProtectedRoute>} />
 
-                <Route path="*" element={<NotFound />} />
-              </Routes>
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </Suspense>
             </NotificationProvider>
           </BrowserRouter>
         </TooltipProvider>

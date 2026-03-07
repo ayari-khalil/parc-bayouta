@@ -202,7 +202,7 @@ export default function CafeOrder() {
                             >
                                 <div className="relative aspect-[4/3] w-full bg-muted overflow-hidden">
                                     {item.image ? (
-                                        <img src={`${API_URL}${item.image.startsWith('/') ? '' : '/'}${item.image}`} alt={item.name} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                                        <img src={`${API_URL}${item.image.startsWith('/') ? '' : '/'}${item.image}`} alt={item.name} loading="lazy" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
                                     ) : (
                                         <div className="w-full h-full flex items-center justify-center text-muted-foreground/20">
                                             <UtensilsCrossed className="w-8 h-8 sm:w-12 sm:h-12" />

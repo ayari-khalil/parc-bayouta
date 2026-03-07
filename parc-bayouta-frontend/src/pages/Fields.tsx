@@ -6,7 +6,7 @@ import { format, addDays, startOfWeek, isSameDay, isToday, isBefore } from "date
 import { fr } from "date-fns/locale";
 import { PublicLayout } from "@/components/layout/PublicLayout";
 import { reservationApi, FieldReservation } from "@/lib/api/reservation";
-import terrainImg from "@/assets/terrain-foot.jpg";
+import terrainImg from "@/assets/terrain-foot.webp";
 import { useToast } from "@/hooks/use-toast";
 import { useEffect } from "react";
 import { sendWhatsAppMessage } from "@/lib/whatsappUtils";
@@ -179,6 +179,7 @@ export default function Fields() {
                       return terrainImg;
                     })()}
                     alt="Terrain de mini-foot"
+                    loading="lazy"
                     className="w-full h-full object-cover"
                   />
                 </div>

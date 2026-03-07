@@ -150,6 +150,7 @@ export default function EventDetails() {
               <img
                 src={event.image}
                 alt={event.title}
+                loading="lazy"
                 className="w-full h-full object-cover"
               />
               <div className="absolute top-4 left-4 flex gap-2">

@@ -1,9 +1,9 @@
 import { motion } from "framer-motion";
 import { Dribbble, PartyPopper, Coffee, ArrowRight } from "lucide-react";
 import { Button } from "./ui/button";
-import terrainImg from "@/assets/terrain-foot.jpg";
-import salleImg from "@/assets/salle-fetes.jpg";
-import cafeImg from "@/assets/cafe-restaurant.jpg";
+import terrainImg from "@/assets/terrain-foot.webp";
+import salleImg from "@/assets/salle-fetes.webp";
+import cafeImg from "@/assets/cafe-restaurant.webp";
 
 const services = [
   {
@@ -86,6 +86,7 @@ export const ServicesSection = () => {
                 <img
                   src={service.image}
                   alt={service.title}
+                  loading="lazy"
                   className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                 />
                 <div className="absolute inset-0 bg-gradient-to-t from-card/90 via-transparent to-transparent" />

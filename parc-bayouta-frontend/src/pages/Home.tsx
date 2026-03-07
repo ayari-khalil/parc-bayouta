@@ -3,11 +3,11 @@ import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Calendar, PartyPopper, Coffee, CalendarDays, ArrowRight, ChevronDown, Check, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import heroBg from "@/assets/hero-bg.jpg";
+import heroBg from "@/assets/hero-bg.webp";
 import logoHero from "@/assets/logo-hero.png";
-import terrainImg from "@/assets/terrain-foot.jpg";
-import salleImg from "@/assets/salle-fetes.jpg";
-import cafeImg from "@/assets/cafe-restaurant.jpg";
+import terrainImg from "@/assets/terrain-foot.webp";
+import salleImg from "@/assets/salle-fetes.webp";
+import cafeImg from "@/assets/cafe-restaurant.webp";
 import { getCategoryLabel, getCategoryColor } from "@/data/mockData";
 import { format, parseISO, isAfter } from "date-fns";
 import { fr } from "date-fns/locale";
@@ -209,6 +209,7 @@ export default function Home() {
                   <img
                     src={service.image}
                     alt={service.title}
+                    loading="lazy"
                     className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                   />
                   <div className="absolute inset-0 bg-gradient-to-t from-foreground/60 to-transparent" />
@@ -291,6 +292,7 @@ export default function Home() {
                       <img
                         src={event.image}
                         alt={event.title}
+                        loading="lazy"
                         className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
                       />
                     ) : (

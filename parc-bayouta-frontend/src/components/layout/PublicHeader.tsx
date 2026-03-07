@@ -3,7 +3,7 @@ import { Link, useLocation } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import { Menu, X, Phone } from "lucide-react";
 import { Button } from "../ui/button";
-import navbarLogo from "@/assets/logo-header.jpg";
+import navbarLogo from "@/assets/logo-header.webp";
 import { getSettings, Settings } from "@/api/settingsApi";
 
 const navLinks = [

@@ -8,11 +8,11 @@ import { PublicLayout } from "@/components/layout/PublicLayout";
 import { reservationApi, HallReservation, Hall } from "@/lib/api/reservation";
 import { useToast } from "@/hooks/use-toast";
 import { sendWhatsAppMessage } from "@/lib/whatsappUtils";
-import salle5 from "@/assets/gallery/salle/salle-1.jpg";
-import salle2 from "@/assets/gallery/salle/salle-2.jpg";
-import salle3 from "@/assets/gallery/salle/salle-3.jpg";
-import salle4 from "@/assets/gallery/salle/salle-4.jpg";
-import salle1 from "@/assets/gallery/salle/salle-5.jpg";
+import salle5 from "@/assets/gallery/salle/salle-1.webp";
+import salle2 from "@/assets/gallery/salle/salle-2.webp";
+import salle3 from "@/assets/gallery/salle/salle-3.webp";
+import salle4 from "@/assets/gallery/salle/salle-4.webp";
+import salle1 from "@/assets/gallery/salle/salle-5.webp";
 import { Maximize2, X as CloseIcon, Building2, Castle } from "lucide-react";
 
 const galleryImages = [

@@ -6,7 +6,7 @@ import { Button } from "./ui/button";
 import { toast } from "sonner";
 import { format, addDays, startOfWeek, isSameDay, isToday, isBefore } from "date-fns";
 import { fr } from "date-fns/locale";
-import terrainImg from "@/assets/terrain-foot.jpg";
+import terrainImg from "@/assets/terrain-foot.webp";
 
 const timeSlots = [
   "06:00", "07:30", "09:00", "10:30", "12:00", "13:30",

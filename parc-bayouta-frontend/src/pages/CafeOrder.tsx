@@ -9,6 +9,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger, SheetFooter } from "@/components/ui/sheet";
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { PublicLayout } from "@/components/layout/PublicLayout";
 import { toast } from "sonner";
 import * as menuApi from "@/api/menuApi";
@@ -34,6 +35,7 @@ export default function CafeOrder() {
     const [cart, setCart] = useState<CartItem[]>([]);
     const [tableNumber, setTableNumber] = useState("");
     const [showTableModal, setShowTableModal] = useState(false);
+    const [isCartOpen, setIsCartOpen] = useState(false);
     const [staffAction, setStaffAction] = useState<'waiter_call' | 'bill_request' | null>(null);
 
     // Fetch categories and menu items
@@ -258,7 +260,7 @@ export default function CafeOrder() {
                         </Button>
                     </div>
 
-                    <Sheet>
+                    <Sheet open={isCartOpen} onOpenChange={setIsCartOpen}>
                         <SheetTrigger asChild>
                             <Button
                                 variant="accent"
@@ -357,7 +359,8 @@ export default function CafeOrder() {
                                         variant="accent"
                                         onClick={() => {
                                             setStaffAction(null);
-                                            setShowTableModal(true);
+                                            setIsCartOpen(false);
+                                            setTimeout(() => setShowTableModal(true), 150);
                                         }}
                                     >
                                         <Send className="w-4 h-4" />
@@ -371,77 +374,60 @@ export default function CafeOrder() {
             </div>
 
             {/* Unified Table Number Dialog */}
-            <AnimatePresence>
-                {showTableModal && (
-                    <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
-                        <motion.div
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            exit={{ opacity: 0 }}
-                            className="absolute inset-0 bg-background/40 backdrop-blur-md"
-                            onClick={() => setShowTableModal(false)}
-                        />
-                        <motion.div
-                            initial={{ opacity: 0, scale: 0.9, y: 20 }}
-                            animate={{ opacity: 1, scale: 1, y: 0 }}
-                            exit={{ opacity: 0, scale: 0.9, y: 20 }}
-                            className="relative bg-card border border-border/40 w-full max-w-sm rounded-[3rem] p-10 shadow-2xl"
-                            onClick={(e) => e.stopPropagation()}
-                        >
-                            <Button
-                                variant="ghost"
-                                size="icon"
-                                className="absolute top-6 right-6 p-2 text-muted-foreground rounded-2xl hover:bg-muted"
-                                onClick={() => setShowTableModal(false)}
-                            >
-                                <X className="w-5 h-5" />
-                            </Button>
-                            <div className="text-center mb-10">
-                                <div className="w-20 h-20 bg-accent/10 rounded-[2rem] flex items-center justify-center mx-auto mb-6 shadow-inner">
-                                    {staffAction === 'waiter_call' ? <BellRing className="w-10 h-10 text-accent animate-bounce" /> :
-                                        staffAction === 'bill_request' ? <Receipt className="w-10 h-10 text-accent" /> :
-                                            <ShoppingCart className="w-10 h-10 text-accent" />}
-                                </div>
-                                <h2 className="text-3xl font-black font-display text-foreground">Votre Table</h2>
-                                <p className="text-muted-foreground mt-3 text-sm leading-relaxed">
-                                    {staffAction === 'waiter_call' ? "Un équipier arrive pour vous assister." :
-                                        staffAction === 'bill_request' ? "Nous préparons votre addition." :
-                                            "Dernière étape avant la dégustation !"}
-                                </p>
+            <Dialog open={showTableModal} onOpenChange={setShowTableModal}>
+                <DialogContent className="p-0 border-none bg-transparent shadow-none max-w-sm w-[90vw] sm:w-full z-[70]">
+                    <motion.div
+                        initial={{ opacity: 0, scale: 0.9, y: 20 }}
+                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                        exit={{ opacity: 0, scale: 0.9, y: 20 }}
+                        className="relative bg-card border border-border/40 w-full rounded-[3rem] p-8 sm:p-10 shadow-2xl"
+                    >
+                        <div className="text-center mb-10">
+                            <div className="w-20 h-20 bg-accent/10 rounded-[2rem] flex items-center justify-center mx-auto mb-6 shadow-inner">
+                                {staffAction === 'waiter_call' ? <BellRing className="w-10 h-10 text-accent animate-bounce" /> :
+                                    staffAction === 'bill_request' ? <Receipt className="w-10 h-10 text-accent" /> :
+                                        <ShoppingCart className="w-10 h-10 text-accent" />}
                             </div>
+                            <DialogTitle className="text-3xl font-black font-display text-foreground">Votre Table</DialogTitle>
+                            <DialogDescription className="text-muted-foreground mt-3 text-sm leading-relaxed">
+                                {staffAction === 'waiter_call' ? "Un équipier arrive pour vous assister." :
+                                    staffAction === 'bill_request' ? "Nous préparons votre addition." :
+                                        "Dernière étape avant la dégustation !"}
+                            </DialogDescription>
+                        </div>
 
-                            <div className="space-y-8">
-                                <div className="relative group">
-                                    <div className="absolute inset-0 rounded-3xl pointer-events-none group-focus-within:ring-4 ring-accent/10 transition-all duration-300 z-0" />
-                                    <Input
-                                        type="number"
-                                        inputMode="numeric"
-                                        placeholder="N° table"
-                                        value={tableNumber}
-                                        onChange={(e) => setTableNumber(e.target.value)}
-                                        className="relative z-10 h-20 text-center text-4xl font-black rounded-3xl border-border/40 focus-visible:ring-accent bg-card border-2 transition-all duration-300 focus:border-accent group-hover:border-accent/20"
-                                    />
-                                </div>
-                                <Button
-                                    className="w-full h-16 rounded-[1.5rem] text-xl font-black gap-4 shadow-2xl shadow-accent/20 transition-all duration-300 hover:shadow-accent/40 active:scale-95 py-4"
-                                    variant="accent"
-                                    onClick={handleAction}
-                                    disabled={orderMutation.isPending || staffMutation.isPending}
-                                >
-                                    {(orderMutation.isPending || staffMutation.isPending) ? (
-                                        <Loader2 className="w-6 h-6 animate-spin" />
-                                    ) : (
-                                        <div className="flex items-center gap-3">
-                                            <span>Confirmer</span>
-                                            <Send className="w-5 h-5" />
-                                        </div>
-                                    )}
-                                </Button>
+                        <div className="space-y-8">
+                            <div className="relative group">
+                                <div className="absolute inset-0 rounded-3xl pointer-events-none group-focus-within:ring-4 ring-accent/10 transition-all duration-300 z-0" />
+                                <Input
+                                    type="number"
+                                    inputMode="numeric"
+                                    placeholder="N° table"
+                                    value={tableNumber}
+                                    onChange={(e) => setTableNumber(e.target.value)}
+                                    className="relative z-10 h-20 text-center text-4xl font-black rounded-3xl border-border/40 focus-visible:ring-accent bg-card border-2 transition-all duration-300 focus:border-accent group-hover:border-accent/20"
+                                    autoFocus
+                                />
                             </div>
-                        </motion.div>
-                    </div>
-                )}
-            </AnimatePresence>
+                            <Button
+                                className="w-full h-16 rounded-[1.5rem] text-xl font-black gap-4 shadow-2xl shadow-accent/20 transition-all duration-300 hover:shadow-accent/40 active:scale-95 py-4"
+                                variant="accent"
+                                onClick={handleAction}
+                                disabled={orderMutation.isPending || staffMutation.isPending}
+                            >
+                                {(orderMutation.isPending || staffMutation.isPending) ? (
+                                    <Loader2 className="w-6 h-6 animate-spin" />
+                                ) : (
+                                    <div className="flex items-center gap-3">
+                                        <span>Confirmer</span>
+                                        <Send className="w-5 h-5" />
+                                    </div>
+                                )}
+                            </Button>
+                        </div>
+                    </motion.div>
+                </DialogContent>
+            </Dialog>
 
         </PublicLayout>
     );

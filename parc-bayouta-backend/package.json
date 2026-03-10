@@ -25,7 +25,8 @@
     "mongodb": "^7.0.0",
     "mongoose": "^9.1.5",
     "morgan": "^1.10.1",
-    "multer": "^2.0.2"
+    "multer": "^2.0.2",
+    "streamsearch": "^1.1.0"
   },
   "devDependencies": {
     "cross-env": "^10.1.0",
